@@ -1,10 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% extends "parent.html" %}
     <meta charset="UTF-8">
-    <title>Homepage</title>
+    {% block head %}
+        {% block title %} 21 black jack  {% endblock %}
+    {% endblock %}
+
 </head>
 <body>
+{% block main %}
+    <h1> Welcome to 21 black jack </h1>
+{% endblock %}
 
 </body>
 </html>

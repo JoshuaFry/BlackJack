@@ -3,8 +3,11 @@
 <head>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta charset="UTF-8">
-    <title>{%  block title %}{% endblock %} </title>
-
+    {% if title %}<!--if it has a title it will be assigned else its title will be black jack-->
+        <title>{{title}}</title>
+     {% else %}
+        <title>BlackJack</title>
+    {% endif %}
 </head>
 <body>
 <div class="navbar1">

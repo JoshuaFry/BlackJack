@@ -17,6 +17,11 @@
 }
  .navbar1 a:hover {
      color: dimgrey;
-
  }
+.selector-for-some-widget {
+  box-sizing: content-box;
+}
+
+
+
 

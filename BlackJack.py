@@ -2,6 +2,7 @@ from flask import Flask
 from flask import Flask,request,render_template
 import uuid
 import pyrebase
+#https://getbootstrap.com/docs/4.3/getting-started/introduction/
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -19,8 +20,18 @@ firebase = pyrebase.initialize_app(config)
 app = Flask(__name__)
 
 @app.route('/')
-def hello_world():
-    return render_template("index.html")
+def home():
+    return render_template("index.html",title="Homepage")
+
+
+@app.route('/account')
+def account_page():
+    return render_template("Account_Page.html",title="Account")
+
+
+@app.route('/about')
+def about_page():
+    return render_template("About_page.html",title="About")
 
 
 def test_data():

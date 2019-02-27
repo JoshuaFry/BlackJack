@@ -9,36 +9,17 @@
 {% block content %}
     <div class="bs-example">
     <h1>Registration Form</h1>
-    <form class="form-horizontal" action="/examples/actions/confirmation.php" method="post">
-        <div class="form-group">
-            <label class="control-label col-xs-3" for="firstName">First Name:</label>
-            <div class="col-xs-9">
-                <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="control-label col-xs-3" for="lastName">Last Name:</label>
-            <div class="col-xs-9">
-                <input type="text" class="form-control" id="lastName" placeholder="Last Name" required>
-            </div>
-        </div>
+    <form class="form-horizontal" action="{{url_for('register_user')}}" method="post">
 		<div class="form-group">
             <label class="control-label col-xs-3" for="inputEmail">Email Address:</label>
             <div class="col-xs-9">
-                <input type="email" class="form-control" id="inputEmail" placeholder="Email Address" required>
+                <input type="email" class="form-control" name = "email" id="inputEmail" placeholder="Email Address" required>
             </div>
         </div>
         <div class="form-group">
             <label class="control-label col-xs-3" for="password">Password :</label>
             <div class="col-xs-9">
-                <input type="password" class="form-control" id="inputPassword" placeholder="Password" required>
-            </div>
-        </div>
-        <div class="form-group">
-            <div class="col-xs-offset-3 col-xs-9">
-                <label class="checkbox-inline">
-                    <input type="checkbox" value="agree">  I agree to the <a href="#">Terms and Conditions</a>.
-                </label>
+                <input type="password" class="form-control" name= "password" id="inputPassword" placeholder="Password" required>
             </div>
         </div>
         <br>
@@ -52,17 +33,17 @@
 </div>
       <div class="bs-example">
     <h1>Sign in Form</h1>
-    <form class="form-horizontal" action="/examples/actions/confirmation.php" method="post">
+    <form class="form-horizontal" action="{{url_for('signin_user')}}" method="post">
 		<div class="form-group">
             <label class="control-label col-xs-3" for="inputEmail">Email Address:</label>
             <div class="col-xs-9">
-                <input type="email" class="form-control" id="inputEmail" placeholder="Email Address" required>
+                <input type="email" class="form-control" id="inputEmail" name="email" placeholder="Email Address" required>
             </div>
         </div>
         <div class="form-group">
             <label class="control-label col-xs-3" for="password">Password :</label>
             <div class="col-xs-9">
-                <input type="password" class="form-control" id="inputPassword" placeholder="Password" required>
+                <input type="password" class="form-control" id="inputPassword" name="password" placeholder="Password" required>
             </div>
         </div>
         <div class="form-group">

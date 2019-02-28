@@ -40,11 +40,24 @@ def about_page():
 def register_user():
     email = request.form['email']
     password = request.form['password']
+    userName = request.form['Username']
     auth.create_user_with_email_and_password(email, password)
     user = auth.sign_in_with_email_and_password(email,password)
-    user = auth.refresh(user['refreshToken'])
+    auth.refresh(user['refreshToken'])
+
+    create_base_user_data(userName)
 
     return render_template("index.html",title="Homepage")
+
+
+@app.route('/updateBalance/', methods = ['POST'])
+def update_balance():
+    userId = auth.current_user['localId']
+    amount = request.form['amount']
+    db = firebase.database()
+    results = db.child("users/" + userId).update({"balance:" + amount})
+
+    return render_template("User_info.html", name = auth.current_user['displayName'], balance = 0)
 
 
 @app.route('/signin', methods = ['POST'])
@@ -58,22 +71,19 @@ def signin_user():
     return render_template("index.html",title="Homepage")
 
 
-def test_data():
-    table = uuid.uuid4()
+def create_base_user_data(userName):
+    userId = auth.current_user['localId']
+    db = firebase.database()
 
-    name = "testName"
-    table = {
-        "name" : name,
-        "seats" : {
-            1 : "empty",
-            2 : "empty",
-            3: "empty",
-            4: "empty",
-            5: "empty",
-            6: "empty"
-            }
+    userId = {
+        "userName": userName,
+        "balance": 0,
+        "inGame": False
          }
-    return table
+
+    results = db.child('users').push(userId,auth.current_user['idToken'])
+
+    return render_template("User_info.html", name = auth.current_user['displayName'], balance = 0)
 
 
 if __name__ == '__main__':

@@ -22,7 +22,6 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-
     return render_template("index.html",title="Homepage")
 
 
@@ -44,7 +43,7 @@ def register_user():
     user = auth.sign_in_with_email_and_password(email,password)
     user = auth.refresh(user['refreshToken'])
 
-    return render_template("index.html",title="Homepage")
+    return render_template("User_info.html.html",title="Homepage")
 
 
 @app.route('/signin', methods = ['POST'])
@@ -55,10 +54,10 @@ def signin_user():
     user = auth.refresh(user['refreshToken'])
     # print(auth.current_user)
 
-    return render_template("index.html",title="Homepage")
+    return render_template("User_info.html",title="Homepage")
 
 
-def test_data():
+def create_user_base_data():
     table = uuid.uuid4()
 
     name = "testName"

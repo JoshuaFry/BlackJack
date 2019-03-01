@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% extends "parent.html" %}
+    <meta charset="UTF-8">
+
+</head>
+<body>
+{% block content %}
+    <div class="container">
+    <div class="jumbotron">
+    <h3>UserName:{{ name }}</h3>
+    <h3>Funds available:{{ balance }}</h3>
+    <form class="form-group">
+        <div class="input-group">
+            <span class="input-group-addon">$</span>
+            <input type="number" class="form-control" placeholder="Add Funds" name="amount">
+            <span class="input-group-addon">.00</span>
+        </div>
+        <br>
+        <div class="form-group">
+        <div class="col-xs-offset-5 col-xs-9">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <input type="reset" class="btn btn-default" value="Reset">
+        </div>
+        </div>
+    </form>
+    </div>
+    </div>
+
+
+
+{% endblock content %}
+</body>
+</html>

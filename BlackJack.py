@@ -22,7 +22,6 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-
     return render_template("index.html",title="Homepage")
 
 
@@ -45,9 +44,7 @@ def register_user():
     user = auth.sign_in_with_email_and_password(email,password)
     auth.refresh(user['refreshToken'])
 
-    create_base_user_data(userName)
-
-    return render_template("index.html",title="Homepage")
+    return create_base_user_data(userName)
 
 
 @app.route('/updateBalance/', methods = ['POST'])
@@ -56,8 +53,9 @@ def update_balance():
     amount = request.form['amount']
     db = firebase.database()
     results = db.child("users/" + userId).update({"balance:" + amount})
+    userName = db.child("users/" + userId + "balance").get()
 
-    return render_template("User_info.html", name = auth.current_user['displayName'], balance = 0)
+    return render_template("User_info.html", name = auth.current_user['displayName'], balance= 0)
 
 
 @app.route('/signin', methods = ['POST'])
@@ -65,25 +63,33 @@ def signin_user():
     email = request.form['email']
     password = request.form['password']
     user = auth.sign_in_with_email_and_password(email,password)
-    user = auth.refresh(user['refreshToken'])
+    print(user)
+    auth.refresh(user['refreshToken'])
+    db = firebase.database()
+
+    print(auth.current_user['localId'])
+    userData = dict(db.child("users/" + user['localId']).get(auth.current_user['idToken']).val())
+    print(userData)
+    # print(auth.current_user)
     # print(auth.current_user)
 
-    return render_template("index.html",title="Homepage")
+    return render_template("User_info.html",name= userData['userName'], balance= userData['balance'])
 
 
 def create_base_user_data(userName):
-    userId = auth.current_user['localId']
+    user = auth.current_user
+    userId = user['localId']
     db = firebase.database()
 
-    userId = {
+    data = {
         "userName": userName,
-        "balance": 0,
+        "balance": 1000,
         "inGame": False
          }
 
-    results = db.child('users').push(userId,auth.current_user['idToken'])
-
-    return render_template("User_info.html", name = auth.current_user['displayName'], balance = 0)
+    print(userId)
+    results = db.child("users/" + userId).set(data,user['idToken'])
+    return render_template("User_info.html", name = auth.current_user['displayName'], balance= 1000)
 
 
 if __name__ == '__main__':

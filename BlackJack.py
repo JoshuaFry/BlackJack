@@ -1,6 +1,6 @@
 from flask import Flask
 from flask import Flask,request,render_template
-import uuid
+import uuid, functools
 import pyrebase
 #https://getbootstrap.com/docs/4.3/getting-started/introduction/
 
@@ -20,6 +20,18 @@ auth = firebase.auth()
 
 app = Flask(__name__)
 
+
+def login_required(func):
+    @functools.wraps(func)
+    def verify_login(*args, **kwargs):
+        if auth.current_user is not None:
+            return func(*args, **kwargs)
+        else:
+            print("login_required: No User Found")
+            return render_template("Account_Page.html", title="Homepage")
+    return verify_login
+
+
 @app.route('/')
 def home():
     return render_template("index.html",title="Homepage")
@@ -31,6 +43,7 @@ def account_page():
 
 
 @app.route('/about')
+@login_required
 def about_page():
     return render_template("About_page.html",title="About")
 
@@ -47,15 +60,17 @@ def register_user():
     return create_base_user_data(userName)
 
 
-@app.route('/updateBalance/', methods = ['POST'])
+@app.route('/updateBalance/', methods = ['GET', 'POST'])
+@login_required
 def update_balance():
     userId = auth.current_user['localId']
-    amount = request.form['amount']
     db = firebase.database()
-    results = db.child("users/" + userId).update({"balance:" + amount})
-    userName = db.child("users/" + userId + "balance").get()
+    balance = db.child("users/" + userId + "/balance").get().val()  # TODO: Error check results
+    amount = int(request.form['amount']) + balance
+    print(balance)
+    results = db.child("users/" + userId).update({"balance": amount})  # TODO: Error check results
 
-    return render_template("User_info.html", name = auth.current_user['displayName'], balance= 0)
+    return render_template("User_info.html", name=auth.current_user['displayName'], balance=amount)
 
 
 @app.route('/signin', methods = ['POST'])
@@ -63,17 +78,17 @@ def signin_user():
     email = request.form['email']
     password = request.form['password']
     user = auth.sign_in_with_email_and_password(email,password)
-    print(user)
+    #print(user)
     auth.refresh(user['refreshToken'])
     db = firebase.database()
 
-    print(auth.current_user['localId'])
-    userData = dict(db.child("users/" + user['localId']).get(auth.current_user['idToken']).val())
-    print(userData)
+    #print(auth.current_user['localId'])
+    userData = dict(db.child("users/" + user['localId']).get(auth.current_user['idToken']).val()) # TODO: Error check results
+    #print(userData)
     # print(auth.current_user)
     # print(auth.current_user)
 
-    return render_template("User_info.html",name= userData['userName'], balance= userData['balance'])
+    return render_template("User_info.html",name=userData['userName'], balance=userData['balance'])
 
 
 def create_base_user_data(userName):
@@ -87,8 +102,8 @@ def create_base_user_data(userName):
         "inGame": False
          }
 
-    print(userId)
-    results = db.child("users/" + userId).set(data,user['idToken'])
+    #print(userId)
+    results = db.child("users/" + userId).set(data,user['idToken']) # TODO: Error check results
     return render_template("User_info.html", name = auth.current_user['displayName'], balance= 1000)
 
 

@@ -19,5 +19,8 @@ body{
 #logout:active{
     color: lawngreen;
 }
+.table_div{
+    border: #3A7734;
 
+}
 

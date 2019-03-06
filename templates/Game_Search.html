@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% extends "parent.html" %}
+    <meta charset="UTF-8">
+</head>
+<body>
+{% block content %}
+
+{% for table in table_data.values() %}
+    <div class="table_div">
+        <h2>{{ table.name }}</h2>
+        <h4>seats: {{ table.seats }}</h4>
+        {% if table.seats > 0 %}
+            <a href="{{ url_for('join_table') }}">
+                <button>JOIN</button></a>
+        {% endif %}
+    </div>
+{% endfor %}
+
+{% endblock content %}
+</body>
+</html>

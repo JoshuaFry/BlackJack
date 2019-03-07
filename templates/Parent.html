@@ -47,9 +47,13 @@
         <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="nav navbar-nav">
                 <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
-                <li><a href="/account"><span class="glyphicon glyphicon-user"></span> Account</a></li>
-                <li><a href="/about"><span class="glyphicon glyphicon-list-alt"></span> About</a></li>
-                <li><form action="/logout"><input id="logout" type="submit" value="   Logout."></form></li>
+                {% if user %}
+                    <li><a href="/profile"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                    <li><a href="/find_game"><span class="glyphicon glyphicon-list-alt"></span> Find Game</a></li>
+                    <li><form action="/logout"><input id="logout" type="submit" value="   Logout."></form></li>
+                    {% else %}
+                    <li><a href="/login_register"><span class="glyphicon glyphicon-user"></span> Login</a></li>
+                {% endif %}
             </ul>
         </div>
     </div>

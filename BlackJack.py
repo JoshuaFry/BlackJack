@@ -30,23 +30,23 @@ def login_required(func):
             return func(*args, **kwargs)
         else:
             print("login_required: No User Found")
-            return render_template("Account_Page.html", title="Homepage")
+            return render_template("Login_Register.html", title="Homepage", user=is_user())
     return verify_login
 
 
 @app.route('/')
 def home():
-    return render_template("index.html", title="Homepage")
+    return render_template("Index.html", title="Homepage", user=is_user())
 
 
-@app.route('/account')
-def account_page():
-    return render_template("Account_Page.html", title="Login")
+@app.route('/login_register')
+def login_register():
+    return render_template("Login_Register.html", title="Login", user=is_user())
 
 
-@app.route('/about')
-def about_page():
-    return render_template("Game_Search.html", table_data=get_tables())
+@app.route('/find_game')
+def find_game():
+    return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
 @app.route('/register', methods=['POST'])
@@ -69,11 +69,11 @@ def update_balance():
     userData = dict(db.child("users/" + userId).get(auth.current_user['idToken']).val())  # TODO: Error check
 
     if request.form['amount'] == '':
-        return render_template("User_info.html", name=userData['userName'], balance=balance)
+        return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user())
 
     new_balance = int(request.form['amount']) + balance
     results = db.child("users/" + userId).update({"balance": new_balance})  # TODO: Error check
-    return render_template("User_info.html", name=userData['userName'], balance=new_balance)
+    return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user())
 
 
 @app.route('/signin', methods=['POST'])
@@ -84,7 +84,7 @@ def signin_user():
     auth.refresh(user['refreshToken'])
     user_data = get_user_data()
 
-    return render_template("User_info.html", name=user_data['userName'], balance=user_data['balance'])
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
 
 
 def create_base_user_data(userName):
@@ -98,7 +98,7 @@ def create_base_user_data(userName):
 
     # TODO: Error check results
     results = db.child("users/" + user['localId']).set(data, user['idToken'])
-    return render_template("User_info.html", name=auth.current_user['displayName'], balance=1000)
+    return render_template("Profile.html", name=auth.current_user['displayName'], balance=1000, user=is_user())
 
 
 def get_user_data():
@@ -125,12 +125,12 @@ def join_table(table_id):
     seat_id = get_available_seatId(table_id)
 
     if seat_id == -1:
-        return render_template("Game_Search.html", table_data=get_tables())
+        return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
     userName = get_user_data()['userName']
     table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})  # TODO: Error check
     user_results = db.child("users/" + userId).update({"seatId": seat_id})
-    return render_template("Game_Table.html", table_id=table_id)
+    return render_template("Game_Table.html", table_id=table_id, user=is_user())
 
 
 def get_available_seatId(table_id):
@@ -147,8 +147,13 @@ def get_available_seatId(table_id):
 def leave_table(table_id):
     user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
     table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: "empty"})  # TODO: Error check
-    return render_template("Game_Search.html", table_data=get_tables())
+    return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
+def is_user():
+    if auth.current_user is not None:
+        return True
+    else:
+        return False
 
 def stream_handler(message):
     print(message["event"])  # put

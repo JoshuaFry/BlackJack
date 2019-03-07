@@ -12,7 +12,7 @@
         <h2>{{ table.name }}</h2>
         <h4>seats: {{ table.seats }}</h4>
         {% if table.seats > 0 %}
-            <a href="{{ url_for('join_table') }}">
+            <a href="{{ url_for('join_table', table_id=table.id) }}">
                 <button>JOIN</button></a>
         {% endif %}
     </div>

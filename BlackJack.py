@@ -8,12 +8,12 @@ src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
 # TODO: Store config into environment variables
 config = {
-    "apiKey": "AIzaSyAEGhM6e4oYckUrj-25itp6IbFgYfffkH8",
-    "authDomain": "blackjack-22b3a.firebaseapp.com",
-    "databaseURL": "https://blackjack-22b3a.firebaseio.com",
-    "projectId": "blackjack-22b3a",
-    "storageBucket": "blackjack-22b3a.appspot.com",
-    "messagingSenderId": "509859351763"
+    "apiKey": os.environ['apiKey'],
+    "authDomain": os.environ['authDomain'],
+    "databaseURL": os.environ['databaseURL'],
+    "projectId": os.environ['projectId'],
+    "storageBucket": os.environ['bucket'],
+    "messagingSenderId":  os.environ['messagingSenderId']
 }
 
 firebase = pyrebase.initialize_app(config)
@@ -82,10 +82,9 @@ def signin_user():
     password = request.form['password']
     user = auth.sign_in_with_email_and_password(email,password)
     auth.refresh(user['refreshToken'])
+    user_data = get_user_data()
 
-    userData = dict(db.child("users/" + user['localId']).get(auth.current_user['idToken']).val())  # TODO: Error check
-
-    return render_template("User_info.html", name=userData['userName'], balance=userData['balance'])
+    return render_template("User_info.html", name=user_data['userName'], balance=user_data['balance'])
 
 
 def create_base_user_data(userName):
@@ -97,8 +96,15 @@ def create_base_user_data(userName):
         "inGame": False
          }
 
-    results = db.child("users/" + user['localId']).set(data, user['idToken'])  # TODO: Error check results
+    # TODO: Error check results
+    results = db.child("users/" + user['localId']).set(data, user['idToken'])
     return render_template("User_info.html", name=auth.current_user['displayName'], balance=1000)
+
+
+def get_user_data():
+    # TODO: Error check
+    user_data = dict(db.child("users/" + auth.current_user['localId']).get(auth.current_user['idToken']).val())
+    return user_data
 
 
 def get_tables():
@@ -112,13 +118,47 @@ def get_tables():
     return table_data
 
 
-@app.route('/join_table', methods=['GET', 'POST'])
-def join_table():
+@app.route('/join_table/<table_id>', methods=['GET', 'POST'])
+@login_required
+def join_table(table_id):
     userId = auth.current_user['localId']
-    print("join_table: userId: " + userId)
-    return render_template("Game_Table.html")
+    seat_id = get_available_seatId(table_id)
+
+    if seat_id == -1:
+        return render_template("Game_Search.html", table_data=get_tables())
+
+    userName = get_user_data()['userName']
+    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})  # TODO: Error check
+    user_results = db.child("users/" + userId).update({"seatId": seat_id})
+    return render_template("Game_Table.html", table_id=table_id)
+
+
+def get_available_seatId(table_id):
+    seat_id = 0
+    seats = db.child("tables/" + table_id + "/seats").get().val()  # TODO: Error check
+    for i in range(len(seats)):
+        if seats[i] == 'empty':
+            return i
+    return -1
+
+
+@app.route('/leave_table/<table_id>', methods=['GET', 'POST'])
+@login_required
+def leave_table(table_id):
+    user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
+    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: "empty"})  # TODO: Error check
+    return render_template("Game_Search.html", table_data=get_tables())
+
+
+def stream_handler(message):
+    print(message["event"])  # put
+    print(message["path"])  # /-K7yGTTEp7O549EzTYtI
+    print(message["data"])  # {'title': 'Pyrebase', "body": "etc..."}
+
+#my_stream = db.child("posts").stream(stream_handler)
 
 
 if __name__ == '__main__':
+    # test_stream = db.child("tables/-LYwdhsNcoi-Vj3dJ1Pe").stream(stream_handler)
     app.run()
 

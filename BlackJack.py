@@ -1,7 +1,8 @@
-from flask import Flask
-from flask import Flask,request,render_template
+from flask import Flask, jsonify
+from flask import Flask,request,render_template, Response, redirect
 import uuid, functools, os, json
 import pyrebase
+from flask_socketio import SocketIO, emit, send
 # https://getbootstrap.com/docs/4.3/getting-started/introduction/
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
@@ -21,6 +22,7 @@ auth = firebase.auth()
 db = firebase.database()
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 
 def login_required(func):
@@ -130,6 +132,8 @@ def join_table(table_id):
     userName = get_user_data()['userName']
     table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})  # TODO: Error check
     user_results = db.child("users/" + userId).update({"seatId": seat_id})
+
+    stream = db.child("tables/" + table_id).stream(stream_handler)
     return render_template("Game_Table.html", table_id=table_id, user=is_user())
 
 
@@ -149,21 +153,23 @@ def leave_table(table_id):
     table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: "empty"})  # TODO: Error check
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
+
 def is_user():
     if auth.current_user is not None:
         return True
     else:
         return False
 
-def stream_handler(message):
-    print(message["event"])  # put
-    print(message["path"])  # /-K7yGTTEp7O549EzTYtI
-    print(message["data"])  # {'title': 'Pyrebase', "body": "etc..."}
 
-#my_stream = db.child("posts").stream(stream_handler)
+@socketio.on('my event')
+def stream_handler(message):
+    with app.app_context():
+        print(message["event"])  # put
+        print(message["path"])  # /-K7yGTTEp7O549EzTYtI
+        print(message["data"])  # {'title': 'Pyrebase', "body": "etc..."}
+        socketio.emit('data_changed', message, broadcast=True, json=True)
 
 
 if __name__ == '__main__':
-    # test_stream = db.child("tables/-LYwdhsNcoi-Vj3dJ1Pe").stream(stream_handler)
-    app.run()
+    socketio.run(app, debug=True)
 

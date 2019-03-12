@@ -78,6 +78,13 @@ def update_balance():
     return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user())
 
 
+@app.route('/profile', methods=['GET'])
+@login_required
+def view_profile():
+    user_data = get_user_data()
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
+
+
 @app.route('/signin', methods=['POST'])
 def signin_user():
     email = request.form['email']
@@ -95,7 +102,7 @@ def create_base_user_data(userName):
     data = {
         "userName": userName,
         "balance": 1000,
-        "inGame": False
+        "seatId": -1
          }
 
     # TODO: Error check results
@@ -123,22 +130,26 @@ def get_tables():
 @app.route('/join_table/<table_id>', methods=['GET', 'POST'])
 @login_required
 def join_table(table_id):
-    userId = auth.current_user['localId']
-    seat_id = get_available_seatId(table_id)
-
+    seat_id = get_available_seatid(table_id)
     if seat_id == -1:
         return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
-    userName = get_user_data()['userName']
-    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})  # TODO: Error check
-    user_results = db.child("users/" + userId).update({"seatId": seat_id})
-
-    stream = db.child("tables/" + table_id).stream(stream_handler)
+    write_user_to_seat(table_id, seat_id)
+    begin_data_stream("tables/" + table_id)
     return render_template("Game_Table.html", table_id=table_id, user=is_user())
 
 
-def get_available_seatId(table_id):
-    seat_id = 0
+@login_required  # TODO: Error check
+def write_user_to_seat(table_id, seat_id):
+    userId = auth.current_user['localId']
+    userName = get_user_data()['userName']
+    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})
+    user_results = db.child("users/" + userId).update({"seatId": seat_id})
+    return
+
+
+def get_available_seatid(table_id):
+    seat_id = -1
     seats = db.child("tables/" + table_id + "/seats").get().val()  # TODO: Error check
     for i in range(len(seats)):
         if seats[i] == 'empty':
@@ -161,13 +172,27 @@ def is_user():
         return False
 
 
-@socketio.on('my event')
+def begin_data_stream(path):
+    db.child(path).stream(stream_handler)
+    return
+
+
 def stream_handler(message):
     with app.app_context():
-        print(message["event"])  # put
-        print(message["path"])  # /-K7yGTTEp7O549EzTYtI
-        print(message["data"])  # {'title': 'Pyrebase', "body": "etc..."}
-        socketio.emit('data_changed', message, broadcast=True, json=True)
+        path = str(message["path"][1:]).split('/')
+        if path[0] == 'seats':
+            data = {'seat': path[1], 'name': message['data']}
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
+
+        if path[0] == 'status':
+            socketio.emit('status_changed', message['data'], broadcast=True)
+
+
+@socketio.on('update_balance')
+def update_user_balance(amt):
+    return
+# update firebase user table balance
+# call emit to refresh the balance shown on users page
 
 
 if __name__ == '__main__':

@@ -8,30 +8,51 @@
 
     <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
-
     <script type="text/javascript" charset="utf-8">
 
     $(document).ready(function(){
         console.log(location.protocol + '//' + document.domain + ':' + location.port);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
-        socket.on('data_changed', function(msg) {
-            console.log(msg.data);
-            $('div#log').append('<p>Received: ' + msg['path'] +' ' + msg['data'] + '</p>');
+        {#SOCKET FUNCTIONS#}
+        socket.on('seat_changed', function(msg) {
+            $('div#log').append('<p>Seat_Changed: ' + msg['seat'] +' ' + msg['name'] + '</p>');
         });
 
+        socket.on('status_changed', function(state) {
+            $('div#log').append('<p>Status_Changed: '+ state + '</p>');
+            state_change(state);
+        });
+        {#END SOCKET FUNCTIONS#}
     });
 
-    </script>
+    function state_change(state){
+        switch (state) {
+            case -2:    //table empty -> begin betting
+                console.log('First Player To Join Table');
+                break;
+            case -1:    //Betting round
+                break;
+            case 0:     //Dealing round
+                break;
+            case 6:     //last players turn
+                break;
+            default:   //any players turn
+                break;
+        }
+    }
 
+    </script>
 <body>
 
     <h1>UNDER CONSTRUCTION</h1>
        <a href="{{ url_for('leave_table', table_id=table_id) }}">
                 <button>LEAVE</button></a>
 
+    {% for i in range(1,7) %}
+        <p>{{ i }}</p>
+    {% endfor %}
 <div id="log">nothing received yet</div>
-
 
 {% endblock content %}
 </body>

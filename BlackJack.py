@@ -180,6 +180,13 @@ def begin_data_stream(path):
 def stream_handler(message):
     with app.app_context():
         path = str(message["path"][1:]).split('/')
+        print(message)
+        print(path)
+        if message['event'] == 'patch':
+            seatId = next(iter(message['data']))
+            data = {'seat': int(seatId), 'name': message['data'][seatId]}
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
+
         if path[0] == 'seats':
             data = {'seat': path[1], 'name': message['data']}
             socketio.emit('seat_changed', data, broadcast=True, json=True)

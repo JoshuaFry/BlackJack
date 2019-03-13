@@ -179,15 +179,10 @@ def begin_data_stream(path):
 
 def stream_handler(message):
     with app.app_context():
-        path = str(message["path"][1:]).split('/')
         if message['event'] == 'patch':
-            if path[0] == 'seats':
-                seatId = next(iter(message['data']))
-                data = {'seat': int(seatId), 'name': message['data'][seatId]}
-                socketio.emit('seat_changed', data, broadcast=True, json=True)
-            if path[0] == 'status':
-                print('Need to handle patch status')
+            return stream_patch(message)
 
+        path = str(message["path"][1:]).split('/')
         if path[0] == 'seats':
             data = {'seat': path[1], 'name': message['data']}
             socketio.emit('seat_changed', data, broadcast=True, json=True)
@@ -195,6 +190,15 @@ def stream_handler(message):
         if path[0] == 'status':
             socketio.emit('status_changed', message['data'], broadcast=True)
 
+
+def stream_patch(message):
+    path = str(message["path"][1:]).split('/')
+    if path[0] == 'seats':
+        seatId = next(iter(message['data']))
+        data = {'seat': int(seatId), 'name': message['data'][seatId]}
+        socketio.emit('seat_changed', data, broadcast=True, json=True)
+    if path[0] == 'status':
+        print('Need to handle patch status')
 
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):

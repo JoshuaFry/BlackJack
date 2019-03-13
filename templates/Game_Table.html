@@ -67,14 +67,18 @@
     <h1>UNDER CONSTRUCTION</h1>
        <a href="{{ url_for('leave_table', table_id=table_id) }}">
                 <button>LEAVE</button></a>
+    <br><br><br>
 
-    {% for i in range(1,7) %}
-        <div id={{i}}>{{i}}
-            <h3 id='name{{ i }}'></h3>
-            <div id='hand{{ i }}'>Hand: </div>
+    <div class="players">
+        {% for i in range(1,7) %}
+            <div class="seat" id={{i}}>
+                <div id='hand{{ i }}'>Hand: </div>
+                <h4 id='name{{ i }}'></h4>
+            </div>
+        {% endfor %}
+    </div>
+    <br>
 
-        </div>
-    {% endfor %}
 <div id="log">nothing received yet</div>
 
 {% endblock content %}

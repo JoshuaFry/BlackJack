@@ -38,7 +38,8 @@ def login_required(func):
 
 @app.route('/')
 def home():
-    return render_template("Index.html", title="Homepage", user=is_user())
+    # return render_template("Index.html", title="Homepage", user=is_user())
+    return render_template("Login_Register.html", title="Homepage", user=is_user())
 
 
 @app.route('/login_register')
@@ -172,26 +173,36 @@ def is_user():
         return False
 
 
+# Stream RESTful json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     db.child(path).stream(stream_handler)
     return
 
 
+# Method triggered on RESTful json changes - initialized from 'begin_data_stream(path)'
 def stream_handler(message):
     with app.app_context():
         if message['event'] == 'patch':
             return stream_patch(message)
-
-        path = str(message["path"][1:]).split('/')
-        if path[0] == 'seats':
-            data = {'seat': path[1], 'name': message['data']}
-            socketio.emit('seat_changed', data, broadcast=True, json=True)
-
-        if path[0] == 'status':
-            socketio.emit('status_changed', message['data'], broadcast=True)
+        else:
+            return stream_put(message)
 
 
+# Sends the RESTful json changes to Game_table page via Flask-SocketIO
+def stream_put(message):
+    print(message)
+    path = str(message["path"][1:]).split('/')
+    if path[0] == 'seats':
+        data = {'seat': path[1], 'name': message['data']}
+        socketio.emit('seat_changed', data, broadcast=True, json=True)
+
+    if path[0] == 'status':
+        socketio.emit('status_changed', message['data'], broadcast=True)
+
+
+# Sends the RESTful json changes to Game_table page via Flask-SocketIO
 def stream_patch(message):
+    print(message)
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
         seatId = next(iter(message['data']))
@@ -200,6 +211,8 @@ def stream_patch(message):
     if path[0] == 'status':
         print('Need to handle patch status')
 
+
+# Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
     seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()

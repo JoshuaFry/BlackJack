@@ -136,7 +136,7 @@ def join_table(table_id):
 
     write_user_to_seat(table_id, seat_id)
     begin_data_stream("tables/" + table_id)
-    return render_template("Game_Table.html", table_id=table_id, user=is_user())
+    return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data()['userName'], user=is_user())
 
 
 @login_required  # TODO: Error check
@@ -180,12 +180,13 @@ def begin_data_stream(path):
 def stream_handler(message):
     with app.app_context():
         path = str(message["path"][1:]).split('/')
-        print(message)
-        print(path)
         if message['event'] == 'patch':
-            seatId = next(iter(message['data']))
-            data = {'seat': int(seatId), 'name': message['data'][seatId]}
-            socketio.emit('seat_changed', data, broadcast=True, json=True)
+            if path[0] == 'seats':
+                seatId = next(iter(message['data']))
+                data = {'seat': int(seatId), 'name': message['data'][seatId]}
+                socketio.emit('seat_changed', data, broadcast=True, json=True)
+            if path[0] == 'status':
+                print('Need to handle patch status')
 
         if path[0] == 'seats':
             data = {'seat': path[1], 'name': message['data']}
@@ -193,6 +194,13 @@ def stream_handler(message):
 
         if path[0] == 'status':
             socketio.emit('status_changed', message['data'], broadcast=True)
+
+
+@socketio.on('get_seat_data')
+def get_seat_data(table_id):
+    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()
+    print(seat_data)
+    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
 
 
 @socketio.on('update_balance')

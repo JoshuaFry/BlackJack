@@ -121,8 +121,9 @@ def get_tables():
     table_data = dict(db.child("tables/").get().val())  # TODO: Error Check
     for table in table_data.values():
         available_seats = 0
-        for seat in table['seats']:
-            if seat == 'empty':
+        print(table)
+        for seat in table['seats'][1:]:
+            if seat['name'] == 'empty':
                 available_seats = available_seats + 1
         table['seats'] = available_seats
     return table_data
@@ -144,17 +145,16 @@ def join_table(table_id):
 def write_user_to_seat(table_id, seat_id):
     userId = auth.current_user['localId']
     userName = get_user_data()['userName']
-    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: userName})
+    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: {"name": userName}})
     user_results = db.child("users/" + userId).update({"seatId": seat_id})
     return
 
 
 def get_available_seatid(table_id):
-    seat_id = -1
-    seats = db.child("tables/" + table_id + "/seats").get().val()  # TODO: Error check
+    seats = db.child("tables/" + table_id + "/seats").get().val()[1:]  # TODO: Error check
     for i in range(len(seats)):
-        if seats[i] == 'empty':
-            return i
+        if seats[i]['name'] == 'empty':
+            return i + 1
     return -1
 
 
@@ -162,7 +162,7 @@ def get_available_seatid(table_id):
 @login_required
 def leave_table(table_id):
     user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
-    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: "empty"})  # TODO: Error check
+    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty"}})  # TODO: Error check
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -206,7 +206,7 @@ def stream_patch(message):
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
         seatId = next(iter(message['data']))
-        data = {'seat': int(seatId), 'name': message['data'][seatId]}
+        data = {'seat': int(seatId), 'name': message['data'][seatId]['name']}
         socketio.emit('seat_changed', data, broadcast=True, json=True)
     if path[0] == 'status':
         print('Need to handle patch status')
@@ -215,9 +215,11 @@ def stream_patch(message):
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
-    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()
-    print(seat_data)
-    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
+    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
+    seat_names = []
+    [seat_names.append(v) for i in range(len(seat_data)) for v in seat_data[i].values()]
+    print(seat_names)
+    socketio.emit('seat_data_acquired', seat_names, broadcast=True)
 
 
 @socketio.on('update_balance')
@@ -225,6 +227,24 @@ def update_user_balance(amt):
     return
 # update firebase user table balance
 # call emit to refresh the balance shown on users page
+def get_deck():
+    deck = dict(db.child("deck/").get(auth.current_user['idToken']).val())
+    print(deck)
+    return deck
+
+def first_hand():
+    deck = get_deck()
+    hand = []
+    x = random.choice(list(deck.items()))
+    y = random.choice(list(deck.items()))
+    return dict(hand.extend([x,y]))
+
+
+@socketio.on('get_hand')
+def write_hand_to_database(table_id):
+    hand = first_hand()
+    seat_id=get_user_data()['seatId']
+    db.child("tables/" + table_id + "/seats/" + seat_id)
 
 
 if __name__ == '__main__':

@@ -22,8 +22,9 @@
         {#SOCKET FUNCTIONS#}
         socket.on('seat_data_acquired', function (seats) {
             console.log(seats);
-            for(var i = 1; i < seats.length; i++){
-                var nameId = 'name'+i;
+            for(var i = 0; i < seats.length; i++){
+                var id = i + 1;
+                var nameId = 'name'+id;
                 document.getElementById(nameId).innerHTML = seats[i];
             }
         });

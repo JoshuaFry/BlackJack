@@ -163,7 +163,7 @@ def get_available_seatid(table_id):
 @login_required
 def leave_table(table_id):
     user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
-    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty"}, "hand": "empty"})  # TODO: Error check
+    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty", "hand": "empty"}})  # TODO: Error check
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 

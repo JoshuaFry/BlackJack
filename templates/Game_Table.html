@@ -16,8 +16,12 @@
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
 
-
         socket.emit('get_seat_data', '{{ table_id }}');
+
+        {#jquery bindings#}
+        $('#get_hand').click(function(){ get_hand(); return false;});
+
+
 
         {#SOCKET FUNCTIONS#}
         socket.on('seat_data_acquired', function (seats) {
@@ -35,12 +39,30 @@
             document.getElementById(nameId).innerHTML = msg['name'];
         });
 
+        socket.on('hand_update', function(data){
+           $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
+           var handId = '#hand'+data['seat'];
+           var handData = data['hand'][0];
+           console.log(handData);
+           var handTotal = 0;
+           Object.keys(handData).forEach(function(k){
+               $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+               handTotal += handData[k];
+           });
+            $(handId).append('<p>Total: ' + handTotal + '</p>');
+        });
+
         socket.on('status_changed', function(state) {
             $('div#log').append('<p>Status_Changed: '+ state + '</p>');
             state_change(state);
         });
+
+        function get_hand(){
+            socket.emit('get_hand', '{{ table_id }}');
+        }
         {#END SOCKET FUNCTIONS#}
     });
+
 
     function state_change(state){
         switch (state) {
@@ -72,9 +94,18 @@
 
     <div class="players">
         {% for i in range(1,7) %}
+
             <div class="seat" id={{i}}>
                 <div id='hand{{ i }}'>Hand: </div>
                 <h4 id='name{{ i }}'></h4>
+
+                {% if (i == seat_id) %}
+                    <a id="get_hand" >Get Hand</a>
+                    |
+                    <a href="/hit" id="hit">Hit</a>
+                    |
+                    <a href="/stand" id="stand">Stand</a>
+                {% endif %}
             </div>
         {% endfor %}
     </div>

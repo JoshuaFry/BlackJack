@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 from flask import Flask,request,render_template, Response, redirect
-import uuid, functools, os, json
+import uuid, functools, os, json, random
 import pyrebase
 from flask_socketio import SocketIO, emit, send
 # https://getbootstrap.com/docs/4.3/getting-started/introduction/
@@ -121,8 +121,8 @@ def get_tables():
     table_data = dict(db.child("tables/").get().val())  # TODO: Error Check
     for table in table_data.values():
         available_seats = 0
-        print(table)
         for seat in table['seats'][1:]:
+            print(seat)
             if seat['name'] == 'empty':
                 available_seats = available_seats + 1
         table['seats'] = available_seats
@@ -133,6 +133,7 @@ def get_tables():
 @login_required
 def join_table(table_id):
     seat_id = get_available_seatid(table_id)
+    print(seat_id)
     if seat_id == -1:
         return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
@@ -162,7 +163,7 @@ def get_available_seatid(table_id):
 @login_required
 def leave_table(table_id):
     user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
-    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty"}})  # TODO: Error check
+    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty"}, "hand": "empty"})  # TODO: Error check
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -205,11 +206,21 @@ def stream_patch(message):
     print(message)
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
-        seatId = next(iter(message['data']))
-        data = {'seat': int(seatId), 'name': message['data'][seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=True, json=True)
+        handle_seat_data_change(message['data'])
     if path[0] == 'status':
         print('Need to handle patch status')
+
+
+def handle_seat_data_change(data):
+    seatId = next(iter(data))
+    if 'hand' in data[seatId]:
+        data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+        socketio.emit('hand_update', data, broadcast=True, json=True)
+        return
+    else:
+        print("Player joined or left table")
+        data = {'seat': int(seatId), 'name': data[seatId]['name']}
+        socketio.emit('seat_changed', data, broadcast=True, json=True)
 
 
 # Returns the current seat data for a given table_id in the DB
@@ -217,7 +228,8 @@ def stream_patch(message):
 def get_seat_data(table_id):
     seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
     seat_names = []
-    [seat_names.append(v) for i in range(len(seat_data)) for v in seat_data[i].values()]
+    print(seat_data)
+    [seat_names.append(i['name']) for i in seat_data]
     print(seat_names)
     socketio.emit('seat_data_acquired', seat_names, broadcast=True)
 
@@ -227,24 +239,41 @@ def update_user_balance(amt):
     return
 # update firebase user table balance
 # call emit to refresh the balance shown on users page
+
+
 def get_deck():
     deck = dict(db.child("deck/").get(auth.current_user['idToken']).val())
-    print(deck)
     return deck
+
 
 def first_hand():
     deck = get_deck()
     hand = []
     x = random.choice(list(deck.items()))
     y = random.choice(list(deck.items()))
-    return dict(hand.extend([x,y]))
+    print(x + y)
+    return {1: {x[0]: x[1], y[0]: y[1]}}
 
 
 @socketio.on('get_hand')
 def write_hand_to_database(table_id):
     hand = first_hand()
-    seat_id=get_user_data()['seatId']
-    db.child("tables/" + table_id + "/seats/" + seat_id)
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    seat_id = user_data['seatId']
+    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
+
+def create_all_tables():
+    for i in range(3):
+        id = str(uuid.uuid4())
+        data = {id: {"id": id, "name": "blank",
+                     "seats": {1: {"hand": "empty", "name": "empty"},
+                        2: {"hand": "empty", "name": "empty"},
+                        3: {"hand": "empty", "name": "empty"},
+                        4: {"hand": "empty", "name": "empty"},
+                        5: {"hand": "empty", "name": "empty"},
+                        6: {"hand": "empty", "name": "empty"}, }}}
+        db.child("tables").update(data)
 
 
 if __name__ == '__main__':

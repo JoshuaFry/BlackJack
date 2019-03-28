@@ -256,7 +256,7 @@ def first_hand():
 def hit():
     deck = get_deck()
     z = random.choice(list(deck.items()))
-    return {1: {z[0]: z[1]}}
+    return {z[0]: z[1]}
 
 
 
@@ -272,11 +272,21 @@ def write_hand_to_database(table_id):
 @socketio.on('hit')
 def write_hand_to_database(table_id):
     card = hit()
+    print(card)
     user_data = get_user_data()
     user_name = user_data['userName']
     seat_id = user_data['seatId']
-    db.child("tables/" + table_id + "/seats/"+seat_id+"hand").push(card)
+    hand=get_current_hand(seat_id,table_id)
+    hand.update(card)
+    print(hand)
+    #db.child("tables/" + table_id + "/seats/"+seat_id+"hand").push(card)
 
+
+def get_current_hand(seat_id,table_id):
+    seat_id=str(seat_id)
+    hand_data=dict(db.child("tables/"+table_id+"/seats/"+seat_id+"/hand").get().val()[1:])
+    print(hand_data)
+    return hand_data
 
 def create_all_tables():
     for i in range(3):

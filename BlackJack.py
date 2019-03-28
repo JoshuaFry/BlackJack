@@ -122,7 +122,6 @@ def get_tables():
     for table in table_data.values():
         available_seats = 0
         for seat in table['seats'][1:]:
-            print(seat)
             if seat['name'] == 'empty':
                 available_seats = available_seats + 1
         table['seats'] = available_seats
@@ -189,7 +188,7 @@ def stream_handler(message):
             return stream_put(message)
 
 
-# Sends the RESTful json changes to Game_table page via Flask-SocketIO
+# Sends the json changes from Firebse to Game_table page via Flask-SocketIO
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')

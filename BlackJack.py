@@ -39,7 +39,7 @@ def login_required(func):
 @app.route('/')
 def home():
     # return render_template("Index.html", title="Homepage", user=is_user())
-    return render_template("Login_Register.html", title="Homepage", user=is_user())
+    return render_template("index.html", title="Homepage", user=is_user())
 
 
 @app.route('/login_register')
@@ -248,11 +248,17 @@ def get_deck():
 
 def first_hand():
     deck = get_deck()
-    hand = []
     x = random.choice(list(deck.items()))
     y = random.choice(list(deck.items()))
     print(x + y)
     return {1: {x[0]: x[1], y[0]: y[1]}}
+
+
+def hit():
+    deck = get_deck()
+    z = random.choice(list(deck.items()))
+    return {1: {z[0]: z[1]}}
+
 
 
 @socketio.on('get_hand')
@@ -262,6 +268,16 @@ def write_hand_to_database(table_id):
     user_name = user_data['userName']
     seat_id = user_data['seatId']
     db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
+
+
+@socketio.on('hit')
+def write_hand_to_database(table_id):
+    card = hit()
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    seat_id = user_data['seatId']
+    db.child("tables/" + table_id + "/seats/"+seat_id+"hand").push(card)
+
 
 def create_all_tables():
     for i in range(3):

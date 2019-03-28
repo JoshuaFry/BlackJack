@@ -44,12 +44,14 @@
            var handId = '#hand'+data['seat'];
            var handData = data['hand'][0];
            console.log(handData);
-           var handTotal = 0;
+           var totalId = '#total'+data['seat'];
+           var handTotal = Number($(totalId).textContent);
+           console.log(totalId + ": " + handTotal);
            Object.keys(handData).forEach(function(k){
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
-            $(handId).append('<p>Total: ' + handTotal + '</p>');
+            $(totalId).textContent = handTotal;
         });
 
         socket.on('status_changed', function(state) {
@@ -96,15 +98,17 @@
         {% for i in range(1,7) %}
 
             <div class="seat" id={{i}}>
-                <div id='hand{{ i }}'>Hand: </div>
+                <div id='hand{{ i }}'>Hand:
+                <p id='total{{ i }}'>0</p></div>
+
                 <h4 id='name{{ i }}'></h4>
 
                 {% if (i == seat_id) %}
                     <a id="get_hand" >Get Hand</a>
                     |
-                    <a href="/hit" id="hit">Hit</a>
+                    <a id="hit" >Hit</a>
                     |
-                    <a href="/stand" id="stand">Stand</a>
+                    <a id="stand" >Stand</a>
                 {% endif %}
             </div>
         {% endfor %}

@@ -44,14 +44,14 @@
            var handId = '#hand'+data['seat'];
            var handData = data['hand'][0];
            console.log(handData);
-           var totalId = '#total'+data['seat'];
-           var handTotal = Number($(totalId).textContent);
+           var totalId = 'total'+data['seat'];
+           var handTotal = parseInt(document.getElementById(totalId).innerHTML);
            console.log(totalId + ": " + handTotal);
            Object.keys(handData).forEach(function(k){
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
-            $(totalId).textContent = handTotal;
+            document.getElementById(totalId).innerHTML = handTotal;
         });
 
         socket.on('status_changed', function(state) {
@@ -112,6 +112,10 @@
                 {% endif %}
             </div>
         {% endfor %}
+    </div>
+    <div class="dealer">
+        <div id="hand7">
+
     </div>
     <br>
 

@@ -1,3 +1,5 @@
+import itertools
+
 from flask import Flask, jsonify
 from flask import Flask,request,render_template, Response, redirect
 import uuid, functools, os, json, random
@@ -213,7 +215,11 @@ def stream_patch(message):
 def handle_seat_data_change(data):
     seatId = next(iter(data))
     if 'hand' in data[seatId]:
-        data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+        print(data[seatId]['hand'])
+        if type(data[seatId]['hand']) == list:
+            data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+        else:
+            data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
         socketio.emit('hand_update', data, broadcast=True, json=True)
         return
     else:
@@ -278,14 +284,14 @@ def write_hand_to_database(table_id):
     seat_id = user_data['seatId']
     hand=get_current_hand(seat_id,table_id)
     hand.update(card)
-    print(hand)
-    #db.child("tables/" + table_id + "/seats/"+seat_id+"hand").push(card)
+    print("new hand:",hand)
+    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
 
 
 def get_current_hand(seat_id,table_id):
     seat_id=str(seat_id)
-    hand_data=dict(db.child("tables/"+table_id+"/seats/"+seat_id+"/hand").get().val()[1:])
-    print(hand_data)
+    hand_data= db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()[1:][0]
+    print("curent hand",hand_data)
     return hand_data
 
 def create_all_tables():

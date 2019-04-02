@@ -1,3 +1,5 @@
+import itertools
+
 from flask import Flask, jsonify
 from flask import Flask,request,render_template, Response, redirect
 import uuid, functools, os, json, random
@@ -39,7 +41,7 @@ def login_required(func):
 @app.route('/')
 def home():
     # return render_template("Index.html", title="Homepage", user=is_user())
-    return render_template("Login_Register.html", title="Homepage", user=is_user())
+    return render_template("index.html", title="Homepage", user=is_user())
 
 
 @app.route('/login_register')
@@ -213,7 +215,11 @@ def stream_patch(message):
 def handle_seat_data_change(data):
     seatId = next(iter(data))
     if 'hand' in data[seatId]:
-        data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+        print(data[seatId]['hand'])
+        if type(data[seatId]['hand']) == list:
+            data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+        else:
+            data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
         socketio.emit('hand_update', data, broadcast=True, json=True)
         return
     else:
@@ -247,11 +253,17 @@ def get_deck():
 
 def first_hand():
     deck = get_deck()
-    hand = []
     x = random.choice(list(deck.items()))
     y = random.choice(list(deck.items()))
     print(x + y)
     return {1: {x[0]: x[1], y[0]: y[1]}}
+
+
+def hit():
+    deck = get_deck()
+    z = random.choice(list(deck.items()))
+    return {z[0]: z[1]}
+
 
 
 @socketio.on('get_hand')
@@ -261,6 +273,26 @@ def write_hand_to_database(table_id):
     user_name = user_data['userName']
     seat_id = user_data['seatId']
     db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
+
+
+@socketio.on('hit')
+def write_hand_to_database(table_id):
+    card = hit()
+    print(card)
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    seat_id = user_data['seatId']
+    hand=get_current_hand(seat_id,table_id)
+    hand.update(card)
+    print("new hand:",hand)
+    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
+
+
+def get_current_hand(seat_id,table_id):
+    seat_id=str(seat_id)
+    hand_data= db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()[1:][0]
+    print("curent hand",hand_data)
+    return hand_data
 
 def create_all_tables():
     for i in range(3):

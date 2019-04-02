@@ -20,6 +20,8 @@
 
         {#jquery bindings#}
         $('#get_hand').click(function(){ get_hand(); return false;});
+        $('#hit').click(function(){ hit(); return false;});
+
 
 
 
@@ -62,6 +64,9 @@
         function get_hand(){
             socket.emit('get_hand', '{{ table_id }}');
         }
+        function hit() {
+            socket.emit('hit','{{ table_id }}');
+        }
         {#END SOCKET FUNCTIONS#}
     });
 
@@ -96,7 +101,6 @@
 
     <div class="players">
         {% for i in range(1,7) %}
-
             <div class="seat" id={{i}}>
                 <div id='hand{{ i }}'>Hand:
                 <p id='total{{ i }}'>0</p></div>
@@ -106,7 +110,7 @@
                 {% if (i == seat_id) %}
                     <a id="get_hand" >Get Hand</a>
                     |
-                    <a id="hit" >Hit</a>
+                    <a id="hit">Hit</a>
                     |
                     <a id="stand" >Stand</a>
                 {% endif %}

@@ -198,8 +198,8 @@ def stream_put(message):
         data = {'seat': path[1], 'name': message['data']}
         socketio.emit('seat_changed', data, broadcast=True, json=True)
 
-    if path[0] == 'status':
-        socketio.emit('status_changed', message['data'], broadcast=True)
+    # if path[0] == 'status':
+        # socketio.emit('status_changed', message['data'], broadcast=True)
 
 
 # Sends the RESTful json changes to Game_table page via Flask-SocketIO
@@ -217,7 +217,7 @@ def handle_seat_data_change(data):
     if 'hand' in data[seatId]:
         print(data[seatId]['hand'])
         if type(data[seatId]['hand']) == list:
-            data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:]}
+            data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
         else:
             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
         socketio.emit('hand_update', data, broadcast=True, json=True)
@@ -290,7 +290,9 @@ def write_hand_to_database(table_id):
 
 def get_current_hand(seat_id,table_id):
     seat_id=str(seat_id)
-    hand_data= db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()[1:][0]
+    hand_data = db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()
+    if type(hand_data) == list:
+        hand_data = hand_data[1:][0]
     print("curent hand",hand_data)
     return hand_data
 

@@ -42,11 +42,11 @@
         socket.on('hand_update', function(data){
            $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
            var handId = '#hand'+data['seat'];
-           var handData = data['hand'][0];
+           var handData = data['hand'];
            console.log(handData);
            var totalId = 'total'+data['seat'];
-           var handTotal = parseInt(document.getElementById(totalId).innerHTML);
-           console.log(totalId + ": " + handTotal);
+           var handTotal = 0;
+           $(handId).html("Hand:");
            Object.keys(handData).forEach(function(k){
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
@@ -100,8 +100,8 @@
     <div class="players">
         {% for i in range(1,7) %}
             <div class="seat" id={{i}}>
-                <div id='hand{{ i }}'>Hand:
-                <p id='total{{ i }}'>0</p></div>
+                <div id='hand{{ i }}'>Hand:</div>
+                <p id='total{{ i }}'>0</p>
 
                 <h4 id='name{{ i }}'></h4>
 
@@ -121,7 +121,7 @@
     </div>
     <br>
 
-<div id="log">nothing received yet</div>
+{#<div id="log">nothing received yet</div>#}
 
 {% endblock content %}
 </body>

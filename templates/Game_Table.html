@@ -19,17 +19,27 @@
         socket.emit('get_seat_data', '{{ table_id }}');
 
         {#jquery bindings#}
-        $('#get_hand').click(function(){ get_hand(); return false;});
-        $('#hit').click(function(){ hit(); return false;});
-
+        //$('#get_hand').click(function(){ get_hand(); return false;});
+        //$('#hit').click(function(){ hit(); return false;});
+        $('#placeBet').click(function () {placeBet()});
+        $('div#turn_UI').hide();
+        $('div#betting_UI').hide();
 
         {#SOCKET FUNCTIONS#}
         socket.on('seat_data_acquired', function (seats) {
             console.log(seats);
+            var playerCount = 6;
             for(var i = 0; i < seats.length; i++){
                 var id = i + 1;
                 var nameId = 'name'+id;
                 document.getElementById(nameId).innerHTML = seats[i];
+                if(seats[i] === "empty") playerCount --;
+            } //If no other players, begin betting round
+            if(playerCount < 2){
+                var THIRTY_SECONDS = (1000 * 30);
+                var end_bet_by = new Date().getTime() + THIRTY_SECONDS;
+                var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
+                socket.emit('begin_betting', data);
             }
         });
 
@@ -41,22 +51,38 @@
 
         socket.on('hand_update', function(data){
            $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
-           var handId = '#hand'+data['seat'];
+           var handId = '#hand{{ seat_id }}';
            var handData = data['hand'];
            console.log(handData);
-           var totalId = 'total'+data['seat'];
+           var totalId = 'total{{ seat_id }}';
            var handTotal = 0;
            $(handId).html("Hand:");
            Object.keys(handData).forEach(function(k){
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
+
             document.getElementById(totalId).innerHTML = handTotal;
         });
 
-        socket.on('status_changed', function(state) {
-            $('div#log').append('<p>Status_Changed: '+ state + '</p>');
+        socket.on('state_changed', function(state) {
+            $('#state').append('<p>Status_Changed: '+ state + '</p>');
             state_change(state);
+        });
+
+        socket.on('bet_update', function(data){
+           var betId = '#bet'+data['seatId'];
+           $(betId).html(data['bet']);
+        });
+
+        socket.on('balance_update', function () {
+           var balanceId = '#balance'+data['seatId'];
+           $(balanceId).html('$'+data['balance']);
+        });
+
+        socket.on('trigger_betting_timer', function(end){
+            beginBettingTimer(end);
+            enableBettingInterfaceHTML();
         });
 
         function get_hand(){
@@ -65,8 +91,17 @@
         function hit() {
             socket.emit('hit','{{ table_id }}');
         }
+        function endBetting(){
+            socket.emit('end_betting', '{{ table_id }}');
+        }
+        function placeBet(){
+           var bet = document.getElementById('inputBet').value;
+           var data = {"bet": bet, "table_id": '{{ table_id }}'};
+           socket.emit('place_bet', data);
+            $('#bet{{ seat_id }}').html("Bet: $" + bet);
+           disableBettingInterfaceHTML();
+        }
         {#END SOCKET FUNCTIONS#}
-    });
 
 
     function state_change(state){
@@ -88,6 +123,39 @@
         }
     }
 
+    function beginBettingTimer(end){
+        var bet_inface_id = 'bet_interface{{ seat_id }}';
+
+        var x = setInterval(function () {
+            var now = new Date().getTime();
+            var distance = end - now;
+            if(distance < 0){
+                $('#timer').html('');
+                socket.emit('deal_cards', '{{ table_id }}');
+                disableBettingInterfaceHTML();
+                 return;
+            }
+            var seconds = Math.floor((distance % (1000 * 30)) / 1000);
+            if(seconds > 1){
+                $('#timer').html(seconds +'   !Place your Bets!   '+ seconds);
+            }else{
+                $('#timer').html('!Good Luck!');
+            }
+        }, 1000);
+    }
+
+    function enableBettingInterfaceHTML(){
+        $('div#betting_UI').show();
+    }
+
+    function disableBettingInterfaceHTML(){
+        $('div#betting_UI').hide();
+    }
+
+
+
+  });
+
 
     </script>
 <body>
@@ -95,30 +163,42 @@
     <h1>UNDER CONSTRUCTION</h1>
        <a href="{{ url_for('leave_table', table_id=table_id) }}">
                 <button>LEAVE</button></a>
-    <br><br><br>
+    <br><br>
+    <h3 id="state">state: </h3>
+    <br>
+
+    <center><h3 id="timer"></h3></center>
+    <center>
+        <div class="dealer">
+            <div id="hand7">Dealer</div>
+        </div>
+    </center>
 
     <div class="players">
         {% for i in range(1,7) %}
             <div class="seat" id={{i}}>
                 <div id='hand{{ i }}'>Hand:</div>
                 <p id='total{{ i }}'>0</p>
-
                 <h4 id='name{{ i }}'></h4>
+                <h4 id='balance{{ i }}'>$</h4>
 
                 {% if (i == seat_id) %}
-                    <a id="get_hand" >Get Hand</a>
-                    |
-                    <a id="hit">Hit</a>
-                    |
-                    <a id="stand" >Stand</a>
+                    <div id="turn_UI">
+                        <a id="hit">Hit</a> | <a id="stand" >Stand</a>
+                    </div>
+                    <div id="betting_UI">
+                        min: 20 max: 2000 <label>
+                        <input id="inputBet" type="number" name="bet" min="20" max="2000"></label>
+                        <a id="placeBet">Place Bet</a>
+                    </div>
                 {% endif %}
+
+                <div id='bet{{ i }}'>Bet: </div>
             </div>
         {% endfor %}
-    </div>
-    <div class="dealer">
-        <div id="hand7">
 
     </div>
+
     <br>
 
 {#<div id="log">nothing received yet</div>#}

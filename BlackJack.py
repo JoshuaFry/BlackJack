@@ -146,8 +146,11 @@ def join_table(table_id):
 @login_required  # TODO: Error check
 def write_user_to_seat(table_id, seat_id):
     userId = auth.current_user['localId']
-    userName = get_user_data()['userName']
-    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: {"name": userName}})
+    user_data = get_user_data()
+    userName = user_data['userName']
+    balance = user_data['balance']
+    bet = user_data['bet']
+    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: {"name": userName, "hand": "empty", "balance": balance, "bet": 0}})
     user_results = db.child("users/" + userId).update({"seatId": seat_id})
     return
 
@@ -164,7 +167,7 @@ def get_available_seatid(table_id):
 @login_required
 def leave_table(table_id):
     user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
-    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty", "hand": "empty"}})  # TODO: Error check
+    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty", "hand": "empty", "balance": 0, "bet": 0}})  # TODO: Error check
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -181,7 +184,7 @@ def begin_data_stream(path):
     return
 
 
-# Method triggered on RESTful json changes - initialized from 'begin_data_stream(path)'
+# Method triggers on json changes - initialized from 'begin_data_stream(path)'
 def stream_handler(message):
     with app.app_context():
         if message['event'] == 'patch':
@@ -190,7 +193,7 @@ def stream_handler(message):
             return stream_put(message)
 
 
-# Sends the json changes from Firebse to Game_table page via Flask-SocketIO
+# Sends the json changes from Firebase to Game_table page via Flask-SocketIO
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')
@@ -198,11 +201,11 @@ def stream_put(message):
         data = {'seat': path[1], 'name': message['data']}
         socketio.emit('seat_changed', data, broadcast=True, json=True)
 
-    # if path[0] == 'status':
+    # if path[0] == 'status': # enable to show data_updates in HTML div#log
         # socketio.emit('status_changed', message['data'], broadcast=True)
 
 
-# Sends the RESTful json changes to Game_table page via Flask-SocketIO
+# Sends json changes to Game_table page via Flask-SocketIO
 def stream_patch(message):
     print(message)
     path = str(message["path"][1:]).split('/')
@@ -241,6 +244,7 @@ def get_seat_data(table_id):
 
 @socketio.on('update_balance')
 def update_user_balance(amt):
+
     return
 # update firebase user table balance
 # call emit to refresh the balance shown on users page
@@ -259,35 +263,6 @@ def first_hand():
     return {1: {x[0]: x[1], y[0]: y[1]}}
 
 
-def hit():
-    deck = get_deck()
-    z = random.choice(list(deck.items()))
-    return {z[0]: z[1]}
-
-
-
-@socketio.on('get_hand')
-def write_hand_to_database(table_id):
-    hand = first_hand()
-    user_data = get_user_data()
-    user_name = user_data['userName']
-    seat_id = user_data['seatId']
-    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
-
-
-@socketio.on('hit')
-def write_hand_to_database(table_id):
-    card = hit()
-    print(card)
-    user_data = get_user_data()
-    user_name = user_data['userName']
-    seat_id = user_data['seatId']
-    hand=get_current_hand(seat_id,table_id)
-    hand.update(card)
-    print("new hand:",hand)
-    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand}})
-
-
 def get_current_hand(seat_id,table_id):
     seat_id=str(seat_id)
     hand_data = db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()
@@ -296,16 +271,87 @@ def get_current_hand(seat_id,table_id):
     print("curent hand",hand_data)
     return hand_data
 
+
+def hit():
+    deck = get_deck()
+    z = random.choice(list(deck.items()))
+    return {z[0]: z[1]}
+
+
+@socketio.on('hit')
+def write_hand_to_database(table_id):
+    card = hit()
+    print(card)
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    balance = user_data['balance']
+    bet = user_data['bet']
+    seat_id = user_data['seatId']
+    hand=get_current_hand(seat_id,table_id)
+    hand.update(card)
+    print("new hand:",hand)
+    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand, "balance": balance, "bet": bet}})
+
+
+@socketio.on('get_hand')
+def write_hand_to_database(table_id):
+    hand = first_hand()
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    balance = user_data['balance']
+    seat_id = user_data['seatId']
+    bet = user_data['bet']
+    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand, "balance": balance, "bet": bet}})
+
+
+@socketio.on('begin_betting')
+def begin_betting(data):
+    db.child("tables/" + data['table_id'] + "/endBettingBy").set(data['end_bet_by'])
+    db.child("tables/" + data['table_id'] + "/state").set(-2)
+    socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
+
+
+@socketio.on('place_bet')
+def place_bet(data):
+    bet = int(data['bet'])
+    table_id = data['table_id']
+    user_data = get_user_data()
+    user_name = user_data['userName']
+    balance = user_data['balance']
+    seat_id = user_data['seatId']
+    balance -= bet
+    userId = auth.current_user['localId']
+    db.child("users").child(userId).child("bet").set(bet)
+    db.child("users").child(userId).child("balance").set(balance)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
+    print(data)
+
+@socketio.on('deal_cards')
+def deal_cards(table_id):
+    return
+
+
+def get_ready_players(table_id):
+    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
+    seat_names = []
+    print(seat_data)
+    [seat_names.append(i['name']) for i in seat_data]
+    print(seat_names)
+
 def create_all_tables():
     for i in range(3):
         id = str(uuid.uuid4())
-        data = {id: {"id": id, "name": "blank",
-                     "seats": {1: {"hand": "empty", "name": "empty"},
-                        2: {"hand": "empty", "name": "empty"},
-                        3: {"hand": "empty", "name": "empty"},
-                        4: {"hand": "empty", "name": "empty"},
-                        5: {"hand": "empty", "name": "empty"},
-                        6: {"hand": "empty", "name": "empty"}, }}}
+        data = {id: {"id": id,
+                     "name": "blank",
+                     "state": -2,
+                     "endBettingBy": -1,
+                     "seats": {1: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        2: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        3: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        4: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        5: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        6: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0}, }}}
         db.child("tables").update(data)
 
 

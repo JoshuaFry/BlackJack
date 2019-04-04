@@ -40,6 +40,7 @@ def login_required(func):
 
 @app.route('/')
 def home():
+    # create_all_tables()
     # return render_template("Index.html", title="Homepage", user=is_user())
     return render_template("index.html", title="Homepage", user=is_user())
 
@@ -182,7 +183,7 @@ def is_user():
         return False
 
 
-# Stream RESTful json changes from Firebase Real-Time DB path
+# Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     db.child(path).stream(stream_handler)
     return
@@ -197,7 +198,7 @@ def stream_handler(message):
             return stream_put(message)
 
 
-# Sends the json changes from Firebase to Game_table page via Flask-SocketIO
+# Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')
@@ -215,20 +216,22 @@ def stream_put(message):
             data = {'seat': path[1], 'hand': message['data']}
             socketio.emit('hand_update', data, broadcast=True, json=True)
     if path[0] == 'state':
-        print(path)
-        # socketio.emit('status_changed', message['data'], broadcast=True)
+        socketio.emit('state_changed', message['data'], broadcast=True)
 
 
+# TODO: test if this case fires with two users if not remove function
 # Sends json changes to Game_table page via Flask-SocketIO
 def stream_patch(message):
     print(message)
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
-        handle_seat_data_change(message['data'])
+        print("Seat Patch currently commented out")
+         # handle_seat_data_change(message['data'])
     if path[0] == 'status':
         print('Need to handle patch status')
 
 
+# TODO: test if this case fires with two users two users if not remove function
 def handle_seat_data_change(data):
     seatId = next(iter(data))
     if 'hand' in data[seatId]:
@@ -249,20 +252,26 @@ def handle_seat_data_change(data):
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
-    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
+    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
     seat_names = []
     print(seat_data)
-    [seat_names.append(i['name']) for i in seat_data]
+    # [seat_names.append(i['name']) for i in seat_data]
     print(seat_names)
-    socketio.emit('seat_data_acquired', seat_names, broadcast=True)
+    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
 
 
 @socketio.on('update_balance')
 def update_user_balance(amt):
-
+    user_data = get_user_data()
+    balance = user_data['balance']
+    seat_id = user_data['seatId']
+    balance += amt
+    user_id = auth.current_user['localId']
+    db.child("users").child(user_id).child("bet").set(0)
+    db.child("users").child(user_id).child("balance").set(balance)
+    db.child("tables").child(user_id).child("seats").child(seat_id).child("bet").set(0)
+    db.child("tables").child(user_id).child("seats").child(seat_id).child("balance").set(balance)
     return
-# update firebase user table balance
-# call emit to refresh the balance shown on users page
 
 
 def get_deck():
@@ -294,7 +303,6 @@ def write_hand_to_database(table_id):
     seat_id = get_user_data()['seatId']
     hand = get_current_hand(seat_id,table_id)
     hand.update(card)
-    print("new hand:",hand)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
 
 
@@ -307,8 +315,8 @@ def write_hand_to_database(table_id):
 
 @socketio.on('begin_betting')
 def begin_betting(data):
-    db.child("tables/" + data['table_id'] + "/endBettingBy").set(data['end_bet_by'])
-    db.child("tables/" + data['table_id'] + "/state").set(-2)
+    db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
+    db.child("tables").child(data['table_id']).child("state").set(-2)
     socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
 
 
@@ -327,6 +335,7 @@ def place_bet(data):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
     print(data)
 
+
 @socketio.on('deal_cards')
 def deal_cards(table_id):
     return
@@ -334,7 +343,7 @@ def deal_cards(table_id):
 
 # TODO: Grab all seat Id's who's bets are > 0
 def get_ready_players(table_id):
-    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
+    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()
     seat_names = []
     print(seat_data)
     [seat_names.append(i['name']) for i in seat_data]
@@ -348,6 +357,7 @@ def create_all_tables():
                      "name": "blank",
                      "state": -2,
                      "endBettingBy": -1,
+                     "Dealer": {"hand": "empty"},
                      "seats": {1: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
                         2: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
                         3: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},

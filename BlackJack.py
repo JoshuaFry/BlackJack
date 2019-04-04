@@ -70,14 +70,14 @@ def register_user():
 @login_required
 def update_balance():
     userId = auth.current_user['localId']
-    balance = db.child("users/" + userId + "/balance").get().val()  # TODO: Error check
-    userData = dict(db.child("users/" + userId).get(auth.current_user['idToken']).val())  # TODO: Error check
+    balance = db.child("users").child(userId).child("balance").get().val()  # TODO: Error check
+    userData = dict(db.child("users").child(userId).get(auth.current_user['idToken']).val())  # TODO: Error check
 
     if request.form['amount'] == '':
         return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user())
 
     new_balance = int(request.form['amount']) + balance
-    results = db.child("users/" + userId).update({"balance": new_balance})  # TODO: Error check
+    db.child("users").child(userId).child("balance").set(new_balance)  # TODO: Error check
     return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user())
 
 
@@ -105,11 +105,12 @@ def create_base_user_data(userName):
     data = {
         "userName": userName,
         "balance": 1000,
-        "seatId": -1
+        "seatId": -1,
+        "bet": 0
          }
 
     # TODO: Error check results
-    results = db.child("users/" + user['localId']).set(data, user['idToken'])
+    results = db.child("users").child(user['localId']).set(data, user['idToken'])
     return render_template("Profile.html", name=auth.current_user['displayName'], balance=1000, user=is_user())
 
 
@@ -149,9 +150,9 @@ def write_user_to_seat(table_id, seat_id):
     user_data = get_user_data()
     userName = user_data['userName']
     balance = user_data['balance']
-    bet = user_data['bet']
-    table_results = db.child("tables/" + table_id + "/seats").update({seat_id: {"name": userName, "hand": "empty", "balance": balance, "bet": 0}})
-    user_results = db.child("users/" + userId).update({"seatId": seat_id})
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set(userName)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
+    db.child("users").child(userId).child("seatId").set(seat_id)
     return
 
 
@@ -166,8 +167,11 @@ def get_available_seatid(table_id):
 @app.route('/leave_table/<table_id>', methods=['GET', 'POST'])
 @login_required
 def leave_table(table_id):
-    user_seat_id = db.child("users/" + auth.current_user['localId'] + "/seatId").get().val()
-    table_results = db.child("tables/" + table_id + "/seats").update({user_seat_id: {"name": "empty", "hand": "empty", "balance": 0, "bet": 0}})  # TODO: Error check
+    seat_id = get_user_data()['seatId']
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set("empty")
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -198,10 +202,20 @@ def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
-        data = {'seat': path[1], 'name': message['data']}
-        socketio.emit('seat_changed', data, broadcast=True, json=True)
-
-    # if path[0] == 'status': # enable to show data_updates in HTML div#log
+        if path[2] == 'name':
+            data = {'seat': path[1], 'name': message['data']}
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
+        elif path[2] == 'bet':
+            data = {'seat': path[1], 'bet': message['data']}
+            socketio.emit('bet_update', data, broadcast=True, json=True)
+        elif path[2] == 'balance':
+            data = {'seat': path[1], 'balance': message['data']}
+            socketio.emit('balance_update', data, broadcast=True, json=True)
+        elif path[2] == 'hand':
+            data = {'seat': path[1], 'hand': message['data']}
+            socketio.emit('hand_update', data, broadcast=True, json=True)
+    if path[0] == 'state':
+        print(path)
         # socketio.emit('status_changed', message['data'], broadcast=True)
 
 
@@ -231,6 +245,7 @@ def handle_seat_data_change(data):
         socketio.emit('seat_changed', data, broadcast=True, json=True)
 
 
+# TODO: Alter this function and returning socket.emit to handles JSON seat data for 'balance' 'bet' 'name'
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
@@ -260,16 +275,11 @@ def first_hand():
     x = random.choice(list(deck.items()))
     y = random.choice(list(deck.items()))
     print(x + y)
-    return {1: {x[0]: x[1], y[0]: y[1]}}
+    return {x[0]: x[1], y[0]: y[1]}
 
 
-def get_current_hand(seat_id,table_id):
-    seat_id=str(seat_id)
-    hand_data = db.child("tables/"+table_id+"/seats/"+seat_id+"/hand/").get().val()
-    if type(hand_data) == list:
-        hand_data = hand_data[1:][0]
-    print("curent hand",hand_data)
-    return hand_data
+def get_current_hand(seat_id, table_id):
+    return db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").get().val()
 
 
 def hit():
@@ -281,27 +291,18 @@ def hit():
 @socketio.on('hit')
 def write_hand_to_database(table_id):
     card = hit()
-    print(card)
-    user_data = get_user_data()
-    user_name = user_data['userName']
-    balance = user_data['balance']
-    bet = user_data['bet']
-    seat_id = user_data['seatId']
-    hand=get_current_hand(seat_id,table_id)
+    seat_id = get_user_data()['seatId']
+    hand = get_current_hand(seat_id,table_id)
     hand.update(card)
     print("new hand:",hand)
-    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand, "balance": balance, "bet": bet}})
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
 
 
 @socketio.on('get_hand')
 def write_hand_to_database(table_id):
     hand = first_hand()
-    user_data = get_user_data()
-    user_name = user_data['userName']
-    balance = user_data['balance']
-    seat_id = user_data['seatId']
-    bet = user_data['bet']
-    db.child("tables/" + table_id + "/seats").update({seat_id: {"name": user_name, "hand": hand, "balance": balance, "bet": bet}})
+    seat_id = get_user_data()['seatId']
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
 
 
 @socketio.on('begin_betting')
@@ -316,11 +317,10 @@ def place_bet(data):
     bet = int(data['bet'])
     table_id = data['table_id']
     user_data = get_user_data()
-    user_name = user_data['userName']
     balance = user_data['balance']
     seat_id = user_data['seatId']
-    balance -= bet
     userId = auth.current_user['localId']
+    balance -= bet
     db.child("users").child(userId).child("bet").set(bet)
     db.child("users").child(userId).child("balance").set(balance)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
@@ -332,12 +332,14 @@ def deal_cards(table_id):
     return
 
 
+# TODO: Grab all seat Id's who's bets are > 0
 def get_ready_players(table_id):
     seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
     seat_names = []
     print(seat_data)
     [seat_names.append(i['name']) for i in seat_data]
     print(seat_names)
+
 
 def create_all_tables():
     for i in range(3):

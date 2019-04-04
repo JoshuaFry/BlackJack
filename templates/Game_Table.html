@@ -19,10 +19,10 @@
         socket.emit('get_seat_data', '{{ table_id }}');
 
         {#jquery bindings#}
-        //$('#get_hand').click(function(){ get_hand(); return false;});
-        //$('#hit').click(function(){ hit(); return false;});
+        $('#get_hand').click(function(){ get_hand(); return false;});
+        $('#hit').click(function(){ hit(); return false;});
         $('#placeBet').click(function () {placeBet()});
-        $('div#turn_UI').hide();
+        //$('div#turn_UI').hide();
         $('div#betting_UI').hide();
 
         {#SOCKET FUNCTIONS#}
@@ -71,12 +71,12 @@
         });
 
         socket.on('bet_update', function(data){
-           var betId = '#bet'+data['seatId'];
-           $(betId).html(data['bet']);
+           var betId = '#bet'+data['seat'];
+           $(betId).html('Bet: $'+ data['bet']);
         });
 
-        socket.on('balance_update', function () {
-           var balanceId = '#balance'+data['seatId'];
+        socket.on('balance_update', function (data) {
+           var balanceId = '#balance'+data['seat'];
            $(balanceId).html('$'+data['balance']);
         });
 
@@ -124,8 +124,6 @@
     }
 
     function beginBettingTimer(end){
-        var bet_inface_id = 'bet_interface{{ seat_id }}';
-
         var x = setInterval(function () {
             var now = new Date().getTime();
             var distance = end - now;
@@ -184,7 +182,7 @@
 
                 {% if (i == seat_id) %}
                     <div id="turn_UI">
-                        <a id="hit">Hit</a> | <a id="stand" >Stand</a>
+                        <a id="get_hand">Get Hand</a> | <a id="hit">Hit</a> | <a id="stand" >Stand</a>
                     </div>
                     <div id="betting_UI">
                         min: 20 max: 2000 <label>

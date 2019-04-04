@@ -184,7 +184,7 @@
                 $('#timer').html('');
                 socket.emit('deal_cards', '{{ table_id }}');
                 disableBettingUI();
-                 return;
+                clearInterval(x);
             }
             var seconds = Math.floor((distance % (1000 * 30)) / 1000);
             if(seconds > 1){

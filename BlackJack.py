@@ -338,24 +338,22 @@ def place_bet(data):
 
 @socketio.on('deal_cards')
 def deal_cards(table_id):
-    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
-    seat_names = []
-    #proper format to access bet is seat_data[1]['bet']
-    if seat_data[1]['bet'] > 0:
-        [seat_names.append(i['name'])for i in seat_data]
-    print(seat_names)
-
+    ready_players = get_ready_players(table_id)
+    for i in range(len(ready_players)):
+        hand = first_hand()
+        db.child("tables").child(table_id).child("seats").child(ready_players[i]).child("hand").set(hand)
     return
 
 
 # TODO: Grab all seat Id's who's bets are > 0
 def get_ready_players(table_id):
-    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()
-    seat_names = []
-    print(seat_data)
-    [seat_names.append(i['name']) for i in seat_data ]
-    print(seat_names)
-
+    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
+    ready_players = []
+    for i in range(len(seat_data)):
+        if seat_data[i]['bet'] > 0:
+            print(seat_data[i])
+            ready_players.append(i + 1)
+    return ready_players
 
 def create_all_tables():
     for i in range(3):

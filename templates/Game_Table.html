@@ -12,6 +12,7 @@
 
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
+        var FORTY_FIVE_SECONDS = (1000 * 45);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
@@ -36,12 +37,15 @@
                 if (seats[i]['name'] === "empty") playerCount--;
             }
             if(playerCount < 2){ //If no other players, begin betting round
-                var end_bet_by = new Date().getTime() + THIRTY_SECONDS;
+                var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);
             }else{
                 socket.emit('verify_game_state', '{{ table_id }}');
             }
+        });
+        socket.on('info', function (info) {
+           $('#info').html(info);
         });
 
         socket.on('seat_changed', function(msg) {
@@ -65,6 +69,7 @@
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
+           if(handId === '#hand7') return; // Dealer logic happens on server side .py
            if(handTotal > 21 && aces > 0){ //Switch ace value to 1 if over 21
                while(handTotal > 21){
                    handTotal -= 10;
@@ -186,16 +191,18 @@
     function state_change(state){
         switch (state) {
             case -2:    //table empty -> begin betting
-                console.log('First Player To Join Table');
+                console.log('Pay out round!');
+                socket.emit('check_win', '{{ table_id }}');
                 break;
             case -1:    //Betting round
-                var end_bet_by = new Date().getTime() + THIRTY_SECONDS;
-                var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
-                socket.emit('begin_betting', data);
-                beginBettingTimer();
-                enableBettingUI();
+                //var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
+                // var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
+                // socket.emit('begin_betting', data);
+                //beginBettingTimer();
+                socket.emit('verify_game_state', '{{ table_id }}');
                 break;
             case 7:     //Dealer's turn
+                console.log("Dealer's Turn");
                 break;
             default:   //any players turn
                 if(state === {{ seat_id }}) enableTurnUI();
@@ -219,7 +226,7 @@
                 disableBettingUI();
                 clearInterval(x);
             }
-            var seconds = Math.floor((distance % (1000 * 30)) / 1000);
+            var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
             if(seconds > 1){
                 $('#timer').html(seconds +'   !Place your Bets!   '+ seconds);
             }else{
@@ -254,10 +261,14 @@
     <h1>UNDER CONSTRUCTION</h1>
        <a href="{{ url_for('leave_table', table_id=table_id) }}">
                 <button>LEAVE</button></a>
-    <br><br>
 
-    <center><h3 id="timer"></h3></center>
     <center>
+    <br>
+    <h3 id="info"></h3>
+    <br>
+
+    <h3 id="timer"></h3>
+
         <div class="dealer">
             <div id="hand7">Dealer</div>
             <p id='total7'></p>

@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template
 import uuid, functools, os, random
 import pyrebase
+import time
 from flask_socketio import SocketIO
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
@@ -320,6 +321,13 @@ def begin_betting(data):
     socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
 
 
+def dealer_begin_betting_round(table_id):
+    FORTY_FIVE_SECONDS = (1000 * 45)
+    end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
+    db.child("tables").child(table_id).child("endBettingBy").set(end)
+    db.child("tables").child(table_id).child("state").set(-2)
+
+
 @socketio.on('verify_game_state')
 def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
@@ -328,6 +336,7 @@ def verify_game_state(table_id):
         socketio.emit('trigger_betting_timer', end, broadcast=False)
     else:
         socketio.emit('state_changed', state)
+
 
 @socketio.on('place_bet')
 def place_bet(data):
@@ -348,6 +357,8 @@ def place_bet(data):
 @socketio.on('pass_turn')
 def pass_turn(data):
     current = data['seat']
+    if current == 7:
+        return db.child("tables").child(data['table_id']).child("state").set(-2)
     ready_players = get_ready_players(data['table_id'])
     next_turn = -2
     for i in range(len(ready_players)):
@@ -360,19 +371,67 @@ def pass_turn(data):
         # TODO: Dealer's Turn
         print("Dealer's Turn")
         dealers_turn(data['table_id'])
-        # TODO: Delete state change once dealer's turn is implemented
     else:
         db.child("tables").child(data['table_id']).child("state").set(next_turn)
+
+
+@socketio.on('check_win')
+def check_win(table_id):
+    user_data = get_user_data()
+    hand = get_current_hand(user_data['seatId'], table_id)
+    user_hand_value = get_hand_total(hand)
+    if user_hand_value == 21:
+        win = user_data['bet'] * 3
+        payout(win)
+        info = "Black Jack Win $" + str(win) + "! Killer!"
+        socketio.emit('info', info, broadcast=False)
+    dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
+    dealer_hand_value = get_hand_total(dealers_hand)
+    if user_hand_value == dealer_hand_value:
+        push = user_data['bet']
+        payout(push)
+        info = "Push $" + str(push) + ", it's a tie"
+        socketio.emit('info', info, broadcast=False)
+    elif user_hand_value > dealer_hand_value:
+        win = user_data['bet'] * 2
+        payout(win)
+        info = "You Won $" + str(win) + "! Keep it up!"
+        socketio.emit('info', info, broadcast=False)
+    else:
+        payout(0)
+        info = "You lost $" + str(user_data['bet']) + ".... Sad"
+        socketio.emit('info', info, broadcast=False)
+    clear_user_hand_and_bet(table_id)
+
+
+def payout(amt):
+    userId = auth.current_user['localId']
+    balance = get_user_data()['balance']
+    balance += amt
+    db.child("users").child(userId).child("bet").set(0)
+    db.child("users").child(userId).child("balance").set(balance)
+
+
+def clear_user_hand_and_bet(table_id):
+    user_data = get_user_data()
+    seat_id = user_data['seatId']
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(user_data['balance'])
 
 
 def dealers_turn(table_id):
     hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     card = hit()
     hand.update(card)
-    while get_hand_total(hand) < 17: # Make dealer hit until they are above 17
+    while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
-        db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
+    db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
+    db.child("tables").child(table_id).child("state").set(-1)
+    dealer_begin_betting_round(table_id)
+
+
 
 
 def get_hand_total(hand):
@@ -382,12 +441,13 @@ def get_hand_total(hand):
         total += v
         if v == 11:
             aces += 1
-    while total > 21: # Change value of Total if ace is present and value above 21
+    while total > 21:  # Change value of Total if ace is present and value above 21
         total -= 10
         aces -= 1
         if aces == 0 & total > 21:
             return total
     return total
+
 
 @socketio.on('deal_cards')
 def deal_cards(table_id):
@@ -412,6 +472,7 @@ def get_ready_players(table_id):
             print(seat_data[i])
             ready_players.append(i + 1)
     return ready_players
+
 
 def create_all_tables():
     for i in range(3):

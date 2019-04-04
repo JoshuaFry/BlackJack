@@ -193,7 +193,8 @@ def begin_data_stream(path):
 def stream_handler(message):
     with app.app_context():
         if message['event'] == 'patch':
-            return stream_patch(message)
+            # return stream_patch(message)
+            return stream_put(message)
         else:
             return stream_put(message)
 
@@ -217,6 +218,9 @@ def stream_put(message):
             socketio.emit('hand_update', data, broadcast=True, json=True)
     if path[0] == 'state':
         socketio.emit('state_changed', message['data'], broadcast=True)
+    if path[0] == 'dealer':
+        data = {'seat': 7, 'hand': message['data']}
+        socketio.emit('hand_update',  data, broadcast=True, json=True)
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -299,9 +303,11 @@ def hit():
 
 @socketio.on('hit')
 def write_hand_to_database(table_id):
-    card = hit()
     seat_id = get_user_data()['seatId']
     hand = get_current_hand(seat_id,table_id)
+    if len(hand) == 0:
+        return
+    card = hit()
     hand.update(card)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
 
@@ -320,6 +326,15 @@ def begin_betting(data):
     socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
 
 
+@socketio.on('verify_game_state')
+def verify_game_state(table_id):
+    state = db.child("tables").child(table_id).child("state").get().val()
+    if state == -2:
+        end = db.child("tables").child(table_id).child("endBettingBy").get().val()
+        socketio.emit('trigger_betting_timer', end, broadcast=True)
+    else:
+        socketio.emit('state_changed', state)
+
 @socketio.on('place_bet')
 def place_bet(data):
     bet = int(data['bet'])
@@ -336,12 +351,33 @@ def place_bet(data):
     print(data)
 
 
+@socketio.on('pass_turn')
+def pass_turn(data):
+    current = data['seat']
+    ready_players = get_ready_players(data['table_id'])
+    next_turn = -2
+    for i in range(len(ready_players)):
+        if ready_players[i] == current:
+                next_turn = ready_players[i + 1]
+    if next_turn == 7:
+        # TODO: Dealer's Turn
+        print("Dealer's Turn")
+        # TODO: Delete state change once dealer's turn is implemented
+    else:
+        db.child("tables").child(data['table_id']).child("state").set(next_turn)
+
+
 @socketio.on('deal_cards')
 def deal_cards(table_id):
     ready_players = get_ready_players(table_id)
+    if len(ready_players) == 0:
+        db.child("tables").child(table_id).child("state").set(-1)
     for i in range(len(ready_players)):
         hand = first_hand()
         db.child("tables").child(table_id).child("seats").child(ready_players[i]).child("hand").set(hand)
+    one_card = hit()
+    db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
+    db.child("tables").child(table_id).child("state").set(ready_players[0])
     return
 
 
@@ -362,7 +398,7 @@ def create_all_tables():
                      "name": "blank",
                      "state": -2,
                      "endBettingBy": -1,
-                     "Dealer": {"hand": "empty"},
+                     "dealer": {"hand": "empty"},
                      "seats": {1: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
                         2: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
                         3: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},

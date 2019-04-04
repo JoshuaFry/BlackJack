@@ -11,7 +11,7 @@
     <script type="text/javascript" charset="utf-8">
 
     $(document).ready(function(){
-
+        var THIRTY_SECONDS = (1000 * 30);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
@@ -36,10 +36,11 @@
                 if (seats[i]['name'] === "empty") playerCount--;
             }
             if(playerCount < 2){ //If no other players, begin betting round
-                var THIRTY_SECONDS = (1000 * 30);
                 var end_bet_by = new Date().getTime() + THIRTY_SECONDS;
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);
+            }else{
+                socket.emit('verify_game_state', '{{ table_id }}');
             }
         });
 
@@ -62,8 +63,15 @@
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
-
-            document.getElementById(totalId).innerHTML = handTotal;
+           if(handTotal > 21){
+               document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
+               stand();
+           }else if(handTotal == 21){ // TODO: If black jack automatically pay out
+               document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
+               stand();
+           }else{
+               document.getElementById(totalId).innerHTML = handTotal;
+           }
         });
 
         socket.on('state_changed', function(state) {
@@ -105,8 +113,9 @@
            disableBettingUI();
         }
         function stand(){
-
             disableTurnUI();
+            data = {"seat": {{seat_id}}, "table_id": '{{ table_id }}'};
+            socket.emit('pass_turn')
         }
 
         function update_player_UI(data, id){
@@ -164,16 +173,24 @@
                 console.log('First Player To Join Table');
                 break;
             case -1:    //Betting round
+                var end_bet_by = new Date().getTime() + THIRTY_SECONDS;
+                var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
+                socket.emit('begin_betting', data);
+                beginBettingTimer();
                 enableBettingUI();
                 break;
-            case 0:     //Dealing round
-                break;
-            case 7:     //last players turn
+            case 7:     //Dealer's turn
                 break;
             default:   //any players turn
-                if(state == {{ seat_id }}) enableTurnUI();
+                if(state === {{ seat_id }}) enableTurnUI();
+                // TODO: Highlight the player's div if it's their turn
+                // TODO: un-highlight same div once player passes turn | handle for leaving game during turn
                 break;
         }
+
+        // TODO: Add on window closed functions
+        // TODO: If the current state == players_seatID then pass turn
+        // TODO: make call to socket.emit('leave_table')
     }
 
     function beginBettingTimer(end){
@@ -227,6 +244,7 @@
     <center>
         <div class="dealer">
             <div id="hand7">Dealer</div>
+            <p id='total7'></p>
         </div>
     </center>
     <br>
@@ -245,9 +263,10 @@
                        <a id="hit">Hit</a> | <a id="stand" >Stand</a>
                     </div>
                     <div id="betting_UI">
-                        min: 20 max: 2000 <label>
+                        [min: 20 max: 2000] <br><label>
                         <input id="inputBet" type="number" name="bet" min="20" max="2000"></label>
-                        <a id="placeBet">Place Bet</a>
+                        <br>
+                        <button id="placeBet">Place Bet</button>
                     </div>
                 {% endif %}
 

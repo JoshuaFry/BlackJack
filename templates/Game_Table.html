@@ -57,18 +57,34 @@
            // console.log(handData);
            var totalId = 'total'+data['seat'];
            var handTotal = 0;
+           var aces = 0;
            $(handId).html("Hand:");
            if(data['hand'] == 'empty') return;
            Object.keys(handData).forEach(function(k){
+               if(handData[k] === 11) aces ++;
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
-           if(handTotal > 21){
+           if(handTotal > 21 && aces > 0){ //Switch ace value to 1 if over 21
+               while(handTotal > 21){
+                   handTotal -= 10;
+                   aces --;
+                   if(aces === 0 && handTotal > 21){
+                       document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
+                       stand();
+                       return;
+                   }
+               }
+               document.getElementById(totalId).innerHTML = handTotal;
+           }
+           else if(handTotal > 21){
                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
                stand();
+               return;
            }else if(handTotal == 21){ // TODO: If black jack automatically pay out
                document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
                stand();
+               return;
            }else{
                document.getElementById(totalId).innerHTML = handTotal;
            }
@@ -115,7 +131,7 @@
         function stand(){
             disableTurnUI();
             data = {"seat": {{seat_id}}, "table_id": '{{ table_id }}'};
-            socket.emit('pass_turn')
+            socket.emit('pass_turn', data);
         }
 
         function update_player_UI(data, id){

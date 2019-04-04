@@ -1,15 +1,10 @@
-import itertools
-
-from flask import Flask, jsonify
-from flask import Flask,request,render_template, Response, redirect
-import uuid, functools, os, json, random
+from flask import Flask, request, render_template
+import uuid, functools, os, random
 import pyrebase
-from flask_socketio import SocketIO, emit, send
-# https://getbootstrap.com/docs/4.3/getting-started/introduction/
+from flask_socketio import SocketIO
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
-# TODO: Store config into environment variables
 config = {
     "apiKey": os.environ['apiKey'],
     "authDomain": os.environ['authDomain'],
@@ -41,7 +36,6 @@ def login_required(func):
 @app.route('/')
 def home():
     # create_all_tables()
-    # return render_template("Index.html", title="Homepage", user=is_user())
     return render_template("index.html", title="Homepage", user=is_user())
 
 
@@ -206,21 +200,21 @@ def stream_put(message):
     if path[0] == 'seats':
         if path[2] == 'name':
             data = {'seat': path[1], 'name': message['data']}
-            socketio.emit('seat_changed', data, broadcast=True, json=True)
+            socketio.emit('seat_changed', data, broadcast=False, json=True)
         elif path[2] == 'bet':
             data = {'seat': path[1], 'bet': message['data']}
-            socketio.emit('bet_update', data, broadcast=True, json=True)
+            socketio.emit('bet_update', data, broadcast=False, json=True)
         elif path[2] == 'balance':
             data = {'seat': path[1], 'balance': message['data']}
-            socketio.emit('balance_update', data, broadcast=True, json=True)
+            socketio.emit('balance_update', data, broadcast=False, json=True)
         elif path[2] == 'hand':
             data = {'seat': path[1], 'hand': message['data']}
-            socketio.emit('hand_update', data, broadcast=True, json=True)
+            socketio.emit('hand_update', data, broadcast=False, json=True)
     if path[0] == 'state':
-        socketio.emit('state_changed', message['data'], broadcast=True)
+        socketio.emit('state_changed', message['data'], broadcast=False)
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
-        socketio.emit('hand_update',  data, broadcast=True, json=True)
+        socketio.emit('hand_update',  data, broadcast=False, json=True)
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -244,12 +238,12 @@ def handle_seat_data_change(data):
             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
         else:
             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-        socketio.emit('hand_update', data, broadcast=True, json=True)
+        socketio.emit('hand_update', data, broadcast=False, json=True)
         return
     else:
         print("Player joined or left table")
         data = {'seat': int(seatId), 'name': data[seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=True, json=True)
+        socketio.emit('seat_changed', data, broadcast=False, json=True)
 
 
 # TODO: Alter this function and returning socket.emit to handles JSON seat data for 'balance' 'bet' 'name'
@@ -261,7 +255,7 @@ def get_seat_data(table_id):
     print(seat_data)
     # [seat_names.append(i['name']) for i in seat_data]
     print(seat_names)
-    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
+    socketio.emit('seat_data_acquired', seat_data, broadcast=False)
 
 
 @socketio.on('update_balance')
@@ -323,7 +317,7 @@ def write_hand_to_database(table_id):
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-2)
-    socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
+    socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
 
 
 @socketio.on('verify_game_state')
@@ -331,7 +325,7 @@ def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
     if state == -2:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
-        socketio.emit('trigger_betting_timer', end, broadcast=True)
+        socketio.emit('trigger_betting_timer', end, broadcast=False)
     else:
         socketio.emit('state_changed', state)
 
@@ -358,14 +352,42 @@ def pass_turn(data):
     next_turn = -2
     for i in range(len(ready_players)):
         if ready_players[i] == current:
-                next_turn = ready_players[i + 1]
+                if i + 1 == len(ready_players):
+                    next_turn = 7
+                else:
+                    next_turn = ready_players[i + 1]
     if next_turn == 7:
         # TODO: Dealer's Turn
         print("Dealer's Turn")
+        dealers_turn(data['table_id'])
         # TODO: Delete state change once dealer's turn is implemented
     else:
         db.child("tables").child(data['table_id']).child("state").set(next_turn)
 
+
+def dealers_turn(table_id):
+    hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
+    card = hit()
+    hand.update(card)
+    while get_hand_total(hand) < 17: # Make dealer hit until they are above 17
+        card = hit()
+        hand.update(card)
+        db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
+
+
+def get_hand_total(hand):
+    total = 0
+    aces = 0
+    for k, v in hand.items():
+        total += v
+        if v == 11:
+            aces += 1
+    while total > 21: # Change value of Total if ace is present and value above 21
+        total -= 10
+        aces -= 1
+        if aces == 0 & total > 21:
+            return total
+    return total
 
 @socketio.on('deal_cards')
 def deal_cards(table_id):

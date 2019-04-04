@@ -329,6 +329,13 @@ def place_bet(data):
 
 @socketio.on('deal_cards')
 def deal_cards(table_id):
+    seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
+    seat_names = []
+    #proper format to access bet is seat_data[1]['bet']
+    if seat_data[1]['bet'] > 0:
+        [seat_names.append(i['name'])for i in seat_data]
+    print(seat_names)
+
     return
 
 
@@ -337,7 +344,7 @@ def get_ready_players(table_id):
     seat_data = db.child("tables/" + table_id + "/seats").get(auth.current_user['idToken']).val()[1:]
     seat_names = []
     print(seat_data)
-    [seat_names.append(i['name']) for i in seat_data]
+    [seat_names.append(i['name']) for i in seat_data ]
     print(seat_names)
 
 
@@ -359,4 +366,5 @@ def create_all_tables():
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
+
 

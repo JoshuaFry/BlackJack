@@ -63,13 +63,13 @@
            var handTotal = 0;
            var aces = 0;
            $(handId).html("Hand:");
-           if(data['hand'] == 'empty') return;
+           if(data['hand'] === 'empty') return;
            Object.keys(handData).forEach(function(k){
                if(handData[k] === 11) aces ++;
                $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
                handTotal += handData[k];
            });
-           if(handId === '#hand7') return; // Dealer logic happens on server side .py
+           // if(handId === '#hand7') return; // Dealer logic happens on server side .py
            if(handTotal > 21 && aces > 0){ //Switch ace value to 1 if over 21
                while(handTotal > 21){
                    handTotal -= 10;
@@ -80,7 +80,7 @@
                        return;
                    }
                }
-               document.getElementById(totalId).innerHTML = handTotal;
+               document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
            }
            else if(handTotal > 21){
                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
@@ -91,7 +91,7 @@
                stand();
                return;
            }else{
-               document.getElementById(totalId).innerHTML = handTotal;
+               document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
            }
         });
 
@@ -195,10 +195,6 @@
                 socket.emit('check_win', '{{ table_id }}');
                 break;
             case -1:    //Betting round
-                //var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
-                // var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
-                // socket.emit('begin_betting', data);
-                //beginBettingTimer();
                 socket.emit('verify_game_state', '{{ table_id }}');
                 break;
             case 7:     //Dealer's turn
@@ -219,6 +215,7 @@
     function beginBettingTimer(end){
         var x = setInterval(function () {
             var now = new Date().getTime();
+            var clearedDealersHand = false;
             var distance = end - now;
             if(distance < 0){
                 $('#timer').html('');
@@ -227,6 +224,12 @@
                 clearInterval(x);
             }
             var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
+            if(seconds < 25 && !clearedDealersHand){
+                $('#hand7').html('Hand:');
+                $('#total7').html('Total: 0');
+                clearedDealersHand = true;
+                clearCards();
+            }
             if(seconds > 1){
                 $('#timer').html(seconds +'   !Place your Bets!   '+ seconds);
             }else{
@@ -234,6 +237,16 @@
             }
         }, 1000);
     }
+
+
+    function clearCards(){
+            for(var i = 1; i < 8; i++){
+                var handId = '#hand' + i;
+                var totalId = '#total' + i;
+                $(handId).html('Hand:');
+                $(totalId).html('Total: 0');
+            }
+        }
 
     function enableBettingUI(){
         $('div#betting_UI').show();
@@ -270,7 +283,8 @@
     <h3 id="timer"></h3>
 
         <div class="dealer">
-            <div id="hand7">Dealer</div>
+            Dealer:
+            <div id="hand7"></div>
             <p id='total7'></p>
         </div>
     </center>
@@ -280,7 +294,7 @@
         {% for i in range(1,7) %}
             <div class="seat" id={{i}}>
                 <div id='hand{{ i }}'>Hand:</div>
-                <p id='total{{ i }}'>0</p>
+                <p id='total{{ i }}'>Total: 0</p>
                 <h4 id='name{{ i }}'></h4>
                 <h4 id='balance{{ i }}'>$</h4>
 

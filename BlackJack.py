@@ -91,8 +91,14 @@ def signin_user():
     user = auth.sign_in_with_email_and_password(email,password)
     auth.refresh(user['refreshToken'])
     user_data = get_user_data()
-
+    # TODO: Error check for failed sign in, render different template on error
     return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
+
+
+# TODO: Implement Logout functionality, call URL from within Nav Bar Parent.html
+@app.route('/logout', methods=['GET'])
+def logout_user():
+    return
 
 
 def create_base_user_data(userName):
@@ -325,13 +331,13 @@ def dealer_begin_betting_round(table_id):
     FORTY_FIVE_SECONDS = (1000 * 45)
     end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
     db.child("tables").child(table_id).child("endBettingBy").set(end)
-    db.child("tables").child(table_id).child("state").set(-2)
+    db.child("tables").child(table_id).child("state").set(-1)
 
 
 @socketio.on('verify_game_state')
 def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
-    if state == -2:
+    if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
         socketio.emit('trigger_betting_timer', end, broadcast=False)
     else:
@@ -359,20 +365,24 @@ def pass_turn(data):
     current = data['seat']
     if current == 7:
         return db.child("tables").child(data['table_id']).child("state").set(-2)
+
     ready_players = get_ready_players(data['table_id'])
-    next_turn = -2
-    for i in range(len(ready_players)):
-        if ready_players[i] == current:
-                if i + 1 == len(ready_players):
-                    next_turn = 7
-                else:
-                    next_turn = ready_players[i + 1]
+    next_turn = get_next_turn(ready_players, current)
     if next_turn == 7:
-        # TODO: Dealer's Turn
         print("Dealer's Turn")
         dealers_turn(data['table_id'])
     else:
         db.child("tables").child(data['table_id']).child("state").set(next_turn)
+
+def get_next_turn(ready_players, current):
+    next_turn = -2
+    for i in range(len(ready_players)):
+        if ready_players[i] == current:
+            if i + 1 == len(ready_players):
+                next_turn = 7
+            else:
+                next_turn = ready_players[i + 1]
+    return next_turn
 
 
 @socketio.on('check_win')
@@ -380,6 +390,8 @@ def check_win(table_id):
     user_data = get_user_data()
     hand = get_current_hand(user_data['seatId'], table_id)
     user_hand_value = get_hand_total(hand)
+    if user_hand_value is None:
+        return
     if user_hand_value == 21:
         win = user_data['bet'] * 3
         payout(win)
@@ -428,15 +440,17 @@ def dealers_turn(table_id):
         card = hit()
         hand.update(card)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
-    db.child("tables").child(table_id).child("state").set(-1)
+    db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)
-
-
 
 
 def get_hand_total(hand):
     total = 0
     aces = 0
+    print("get_hand_total: Hand:" + str(hand))
+
+    if isinstance(hand, str):
+        return
     for k, v in hand.items():
         total += v
         if v == 11:
@@ -449,21 +463,24 @@ def get_hand_total(hand):
     return total
 
 
-@socketio.on('deal_cards')
+@socketio.on('deal_cards')  # TODO: May to refactor to only deal cards to self
 def deal_cards(table_id):
     ready_players = get_ready_players(table_id)
     if len(ready_players) == 0:
-        db.child("tables").child(table_id).child("state").set(-1)
+        print("No players Ready")
+        dealer_begin_betting_round(table_id)
+        return
     for i in range(len(ready_players)):
-        hand = first_hand()
+        hand = first_hand()   # TODO: if ready_players[i] == get_user_data['seatId']
         db.child("tables").child(table_id).child("seats").child(ready_players[i]).child("hand").set(hand)
     one_card = hit()
+    #  TODO: if ready_players[0] == get_user_data['seatId'] # this will ensure the next lines get executed only once
     db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
     db.child("tables").child(table_id).child("state").set(ready_players[0])
     return
 
 
-# TODO: Grab all seat Id's who's bets are > 0
+# Any player with a bet greater than 0
 def get_ready_players(table_id):
     seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
     ready_players = []

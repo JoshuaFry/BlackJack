@@ -88,17 +88,21 @@ def view_profile():
 def signin_user():
     email = request.form['email']
     password = request.form['password']
-    user = auth.sign_in_with_email_and_password(email,password)
-    auth.refresh(user['refreshToken'])
-    user_data = get_user_data()
-    # TODO: Error check for failed sign in, render different template on error
+    try:
+        user = auth.sign_in_with_email_and_password(email,password)
+        auth.refresh(user['refreshToken'])
+        user_data = get_user_data()
+    except:
+        message= "invalid credentials"
+        return render_template("Login_Register.html",message=message)
     return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
 
 
-# TODO: Implement Logout functionality, call URL from within Nav Bar Parent.html
 @app.route('/logout', methods=['GET'])
 def logout_user():
-    return
+    auth.current_user = None
+    return render_template("Index.html")
+
 
 
 def create_base_user_data(userName):

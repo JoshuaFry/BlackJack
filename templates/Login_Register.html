@@ -3,9 +3,9 @@
 <head>
     {% extends "Parent.html" %}
     <meta charset="UTF-8">
-
 </head>
 <body>
+
 {% block content %}
     <div class="bs-example">
     <h1>Registration Form</h1>
@@ -70,6 +70,11 @@
         </div>
     </form>
 </div>
+    {% if message %}
+    <script>
+        swal('Account not registered:','{{message}}');
+    </script>
+    {% endif %}
 
 
 

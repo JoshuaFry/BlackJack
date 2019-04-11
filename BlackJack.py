@@ -470,17 +470,18 @@ def get_hand_total(hand):
 @socketio.on('deal_cards')  # TODO: May to refactor to only deal cards to self
 def deal_cards(table_id):
     ready_players = get_ready_players(table_id)
+    seatId = get_user_data()['seatId']
     if len(ready_players) == 0:
         print("No players Ready")
         dealer_begin_betting_round(table_id)
         return
-    for i in range(len(ready_players)):
-        hand = first_hand()   # TODO: if ready_players[i] == get_user_data['seatId']
-        db.child("tables").child(table_id).child("seats").child(ready_players[i]).child("hand").set(hand)
-    one_card = hit()
-    #  TODO: if ready_players[0] == get_user_data['seatId'] # this will ensure the next lines get executed only once
-    db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
-    db.child("tables").child(table_id).child("state").set(ready_players[0])
+    if get_user_data()['bet']>0:
+        hand = first_hand()
+        db.child("tables").child(table_id).child("seats").child(seatId).child("hand").set(hand)
+    if ready_players[0] == seatId:
+        one_card=hit()
+        db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
+        db.child("tables").child(table_id).child("state").set(ready_players[0])
     return
 
 

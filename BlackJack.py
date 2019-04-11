@@ -240,7 +240,6 @@ def stream_patch(message):
         print('Need to handle patch status')
 
 
-# TODO: test if this case fires with two users two users if not remove function
 def handle_seat_data_change(data):
     seatId = next(iter(data))
     if 'hand' in data[seatId]:
@@ -344,6 +343,7 @@ def verify_game_state(table_id):
     if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
         socketio.emit('trigger_betting_timer', end, broadcast=False)
+        print("trigger_betting_timer")
     else:
         socketio.emit('state_changed', state)
 

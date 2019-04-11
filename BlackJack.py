@@ -36,7 +36,7 @@ def login_required(func):
 
 @app.route('/')
 def home():
-    # create_all_tables()
+    create_all_tables()
     return render_template("index.html", title="Homepage", user=is_user())
 
 
@@ -324,8 +324,8 @@ def write_hand_to_database(table_id):
 @socketio.on('begin_betting')
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
-    db.child("tables").child(data['table_id']).child("state").set(-2)
-    socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
+    db.child("tables").child(data['table_id']).child("state").set(-1)
+    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
 
 
 def dealer_begin_betting_round(table_id):
@@ -467,20 +467,21 @@ def get_hand_total(hand):
     return total
 
 
-@socketio.on('deal_cards')  # TODO: May to refactor to only deal cards to self
+@socketio.on('deal_cards')
 def deal_cards(table_id):
     ready_players = get_ready_players(table_id)
+    seatId = get_user_data()['seatId']
     if len(ready_players) == 0:
         print("No players Ready")
         dealer_begin_betting_round(table_id)
         return
-    for i in range(len(ready_players)):
-        hand = first_hand()   # TODO: if ready_players[i] == get_user_data['seatId']
-        db.child("tables").child(table_id).child("seats").child(ready_players[i]).child("hand").set(hand)
-    one_card = hit()
-    #  TODO: if ready_players[0] == get_user_data['seatId'] # this will ensure the next lines get executed only once
-    db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
-    db.child("tables").child(table_id).child("state").set(ready_players[0])
+    if get_user_data()['bet'] > 0:
+        hand = first_hand()
+        db.child("tables").child(table_id).child("seats").child(seatId).child("hand").set(hand)
+    if ready_players[0] == get_user_data()['seatId']:
+        one_card = hit()
+        db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
+        db.child("tables").child(table_id).child("state").set(ready_players[0])
     return
 
 

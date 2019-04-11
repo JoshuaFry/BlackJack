@@ -17,7 +17,7 @@
 
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
-
+        socket.emit('verify_game_state', '{{ table_id }}');
         socket.emit('get_seat_data', '{{ table_id }}');
 
         {#jquery bindings#}
@@ -42,8 +42,6 @@
                 var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);
-            }else{
-                socket.emit('verify_game_state', '{{ table_id }}');
             }
         });
         socket.on('info', function (info) {
@@ -118,6 +116,7 @@
         socket.on('trigger_betting_timer', function(end){
             beginBettingTimer(end);
             enableBettingUI();
+            console.log("trigger bet timer"+end);
         });
         {#END SOCKET FUNCTIONS#}
 

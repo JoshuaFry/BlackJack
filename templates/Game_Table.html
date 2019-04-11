@@ -14,6 +14,7 @@
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
         socket.emit('verify_game_state', '{{ table_id }}');
@@ -24,6 +25,7 @@
         $('#stand').click(function () {  stand();});
         $('#hit').click(function() { hit(); return false;});
         $('#placeBet').click(function () { placeBet()});
+
         $('div#turn_UI').hide();
         $('div#betting_UI').hide();
 
@@ -60,11 +62,13 @@
            var totalId = 'total'+data['seat'];
            var handTotal = 0;
            var aces = 0;
-           $(handId).html("Hand:");
+           $(handId).html("");
            if(data['hand'] === 'empty') return;
            Object.keys(handData).forEach(function(k){
                if(handData[k] === 11) aces ++;
-               $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+               //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+               console.log("/static/pictures/cards/"+k+".png");
+               $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
                handTotal += handData[k];
            });
            // if(handId === '#hand7') return; // Dealer logic happens on server side .py
@@ -167,10 +171,11 @@
            console.log(handData);
            var totalId = 'total'+data['seat'];
            var handTotal = 0;
-           $(handId).html("Hand:");
+           $(handId).html("");
            if(data['hand'] == 'empty') return;
            Object.keys(handData).forEach(function(k){
-               $(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+               //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+               $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
                handTotal += handData[k];
            });
 
@@ -224,7 +229,7 @@
             }
             var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
             if(seconds < 25 && !clearedDealersHand){
-                $('#hand7').html('Hand:');
+                $('#hand7').html('');
                 $('#total7').html('Total: 0');
                 clearedDealersHand = true;
                 clearCards();
@@ -242,7 +247,7 @@
             for(var i = 1; i < 8; i++){
                 var handId = '#hand' + i;
                 var totalId = '#total' + i;
-                $(handId).html('Hand:');
+                $(handId).html('');
                 $(totalId).html('Total: 0');
             }
         }
@@ -292,7 +297,7 @@
     <div class="players">
         {% for i in range(1,7) %}
             <div class="seat" id={{i}}>
-                <div id='hand{{ i }}'>Hand:</div>
+                <div id='hand{{ i }}'></div>
                 <p id='total{{ i }}'>Total: 0</p>
                 <h4 id='name{{ i }}'></h4>
                 <h4 id='balance{{ i }}'>$</h4>

@@ -256,14 +256,12 @@ def handle_seat_data_change(data):
         socketio.emit('seat_changed', data, broadcast=False, json=True)
 
 
-# TODO: Alter this function and returning socket.emit to handles JSON seat data for 'balance' 'bet' 'name'
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
     seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
     seat_names = []
     print(seat_data)
-    # [seat_names.append(i['name']) for i in seat_data]
     print(seat_names)
     socketio.emit('seat_data_acquired', seat_data, broadcast=False)
 
@@ -368,7 +366,8 @@ def place_bet(data):
 def pass_turn(data):
     current = data['seat']
     if current == 7:
-        return db.child("tables").child(data['table_id']).child("state").set(-2)
+        # return db.child("tables").child(data['table_id']).child("state").set(-2)
+        return
 
     ready_players = get_ready_players(data['table_id'])
     next_turn = get_next_turn(ready_players, current)
@@ -377,6 +376,7 @@ def pass_turn(data):
         dealers_turn(data['table_id'])
     else:
         db.child("tables").child(data['table_id']).child("state").set(next_turn)
+
 
 def get_next_turn(ready_players, current):
     next_turn = -2

@@ -36,7 +36,7 @@ def login_required(func):
 
 @app.route('/')
 def home():
-    create_all_tables()
+    # create_all_tables()
     return render_template("index.html", title="Homepage", user=is_user())
 
 

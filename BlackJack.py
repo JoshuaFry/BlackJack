@@ -459,7 +459,7 @@ def get_hand_total(hand):
         total += v
         if v == 11:
             aces += 1
-    while total > 21:  # Change value of Total if ace is present and value above 21
+    while total > 21 and aces > 0:  # Change value of Total if ace is present and value above 21
         total -= 10
         aces -= 1
         if aces == 0 & total > 21:

@@ -331,6 +331,7 @@ def begin_betting(data):
 def dealer_begin_betting_round(table_id):
     FORTY_FIVE_SECONDS = (1000 * 45)
     end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
+    print("No players ready")
     db.child("tables").child(table_id).child("endBettingBy").set(end)
     db.child("tables").child(table_id).child("state").set(-1)
 
@@ -470,10 +471,12 @@ def get_hand_total(hand):
 @socketio.on('deal_cards')
 def deal_cards(table_id):
     ready_players = get_ready_players(table_id)
+    non_ready_players = get_non_ready_players(table_id)
     seatId = get_user_data()['seatId']
     if len(ready_players) == 0:
-        print("No players Ready")
-        dealer_begin_betting_round(table_id)
+        if non_ready_players[0] == seatId:
+            print("No players Ready")
+            dealer_begin_betting_round(table_id)
         return
     if get_user_data()['bet'] > 0:
         hand = first_hand()
@@ -494,6 +497,19 @@ def get_ready_players(table_id):
             print(seat_data[i])
             ready_players.append(i + 1)
     return ready_players
+
+
+# Any player with a bet ==  0
+def get_non_ready_players(table_id):
+    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
+    non_ready_players = []
+    for i in range(len(seat_data)):
+        if seat_data[i]['bet'] == 0:
+            if seat_data[i]['name'] != 'empty':
+                print(seat_data[i])
+                non_ready_players.append(i + 1)
+    return non_ready_players
+
 
 
 def create_all_tables():

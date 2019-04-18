@@ -1,6 +1,5 @@
 altgraph==0.10.2
 bdist-mpkg==0.5.0
-bonjour-py==0.3
 cachetools==3.1.0
 click==6.7
 ConfigSpace==0.4.7
@@ -17,7 +16,6 @@ gax-google-pubsub-v1==0.8.3
 gcloud==0.17.0
 google-auth==1.6.2
 google-gax==0.16.0
-googleapis-common-protos==1.5.8
 grpc-google-logging-v2==0.8.1
 grpc-google-pubsub-v1==0.8.1
 grpcio==1.18.0

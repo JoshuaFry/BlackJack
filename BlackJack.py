@@ -194,6 +194,7 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_handler)
+    socketio.start_background_task(target=stream_handler)
     return
 
 
@@ -207,13 +208,12 @@ def stream_handler(message):
     with app.app_context():
         if message['event'] == 'patch':
             # return stream_patch(message)
-            return socketio.emit('stream_put', message)  # stream_put(message)
+            return stream_put(message)
         else:
-            return socketio.emit('stream_put', message)  # stream_put(message)
+            return stream_put(message)
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
-@socketio.on('stream_put')
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')

@@ -101,7 +101,7 @@ def signin_user():
 @app.route('/logout', methods=['GET'])
 def logout_user():
     auth.current_user = None
-    return render_template("Index.html")
+    return render_template("index.html")
 
 
 

@@ -13,7 +13,7 @@
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port, {transports: ['websocket']});
 
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';

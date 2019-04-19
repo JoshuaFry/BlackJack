@@ -194,7 +194,7 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_handler)
-    socketio.start_background_task(target=stream_handler)
+    socketio.start_background_task(target=my_stream)
     return
 
 

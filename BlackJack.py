@@ -34,18 +34,18 @@ def login_required(func):
     return verify_login
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
     # create_all_tables()
     return render_template("index.html", title="Homepage", user=is_user())
 
 
-@app.route('/login_register')
+@app.route('/login_register', methods=['GET', 'POST'])
 def login_register():
     return render_template("Login_Register.html", title="Login", user=is_user())
 
 
-@app.route('/find_game')
+@app.route('/find_game', methods=['GET', 'POST'])
 def find_game():
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 

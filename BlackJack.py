@@ -3,6 +3,7 @@ import uuid, functools, os, random
 import pyrebase
 import time
 from flask_socketio import SocketIO
+from threading import Lock
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -14,14 +15,18 @@ config = {
     "storageBucket": os.environ['bucket'],
     "messagingSenderId":  os.environ['messagingSenderId']
 }
+async_mode = None
+thread = None
+thread_lock = Lock()
 
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode=async_mode)
 my_stream = None
+
 
 def login_required(func):
     @functools.wraps(func)

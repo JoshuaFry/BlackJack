@@ -3,7 +3,6 @@ import uuid, functools, os, random
 import pyrebase
 import time
 from flask_socketio import SocketIO
-from threading import Lock
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -15,16 +14,13 @@ config = {
     "storageBucket": os.environ['bucket'],
     "messagingSenderId":  os.environ['messagingSenderId']
 }
-async_mode = None
-thread = None
-thread_lock = Lock()
 
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
 
 app = Flask(__name__)
-socketio = SocketIO(app, async_mode=async_mode)
+socketio = SocketIO(app)
 my_stream = None
 
 
@@ -107,7 +103,6 @@ def signin_user():
 def logout_user():
     auth.current_user = None
     return render_template("index.html")
-
 
 
 def create_base_user_data(userName):
@@ -197,6 +192,7 @@ def is_user():
 
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
+    global my_stream
     my_stream = db.child(path).stream(stream_handler)
     return
 
@@ -206,18 +202,18 @@ def end_data_stream():
     return
 
 
-
 # Method triggers on json changes - initialized from 'begin_data_stream(path)'
 def stream_handler(message):
     with app.app_context():
         if message['event'] == 'patch':
             # return stream_patch(message)
-            return stream_put(message)
+            return socketio.emit('stream_put', message)  # stream_put(message)
         else:
-            return stream_put(message)
+            return socketio.emit('stream_put', message)  # stream_put(message)
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
+@socketio.on('stream_put')
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')

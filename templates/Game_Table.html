@@ -42,6 +42,7 @@
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);
             }else{
+                console.log('verifying_game_state');
                 socket.emit('verify_game_state', '{{ table_id }}');
             }
         });
@@ -117,7 +118,7 @@
         socket.on('trigger_betting_timer', function(end){
             beginBettingTimer(end);
             enableBettingUI();
-            console.log("trigger bet timer"+end);
+            console.log("trigger bet timer "+end);
         });
         {#END SOCKET FUNCTIONS#}
 

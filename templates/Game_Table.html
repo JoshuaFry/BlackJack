@@ -13,11 +13,11 @@
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port, {transports: ['websocket']});
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port); //{transports: ['websocket']}
 
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
-        socket.emit('get_seat_data', '{{ table_id }}');
+        socket.t.emit('get_seat_data', '{{ table_id }}');
 
         {#jquery bindings#}
         $('#get_hand').click(function(){ get_hand(); return false;});

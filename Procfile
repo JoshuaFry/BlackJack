@@ -1,1 +1,1 @@
-web: gunicorn -k eventlet BlackJack:app
+web: gunicorn --worker-class eventlet -w 1 BlackJack:app

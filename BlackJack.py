@@ -159,6 +159,7 @@ def write_user_to_seat(table_id, seat_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set(userName)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
     db.child("users").child(userId).child("seatId").set(seat_id)
+    db.child("users").child(userId).child("tableId").set(table_id)
     return
 
 
@@ -210,22 +211,22 @@ def stream_put(message):
     path = str(message["path"][1:]).split('/')
     if path[0] == 'seats':
         if path[2] == 'name':
-            data = {'seat': path[1], 'name': message['data']} #TODO : May need to set room param in .emit functions
-            socketio.emit('seat_changed', data, broadcast=True)
+            data = {'seat': path[1], 'name': message['data']}
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
         elif path[2] == 'bet':
             data = {'seat': path[1], 'bet': message['data']}
-            socketio.emit('bet_update', data, broadcast=True)
+            socketio.emit('bet_update', data, broadcast=True, json=True)
         elif path[2] == 'balance':
             data = {'seat': path[1], 'balance': message['data']}
-            socketio.emit('balance_update', data, broadcast=True)
+            socketio.emit('balance_update', data, broadcast=True, json=True)
         elif path[2] == 'hand':
             data = {'seat': path[1], 'hand': message['data']}
-            socketio.emit('hand_update', data, broadcast=True)
+            socketio.emit('hand_update', data, broadcast=True, json=True)
     if path[0] == 'state':
         socketio.emit('state_changed', message['data'], broadcast=True)
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
-        socketio.emit('hand_update',  data, broadcast=True)
+        socketio.emit('hand_update',  data, broadcast=True, json=True)
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -248,12 +249,12 @@ def handle_seat_data_change(data):
             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
         else:
             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-        socketio.emit('hand_update', data, broadcast=True)
+        socketio.emit('hand_update', data, broadcast=True, json=True)
         return
     else:
         print("Player joined or left table")
         data = {'seat': int(seatId), 'name': data[seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=True)
+        socketio.emit('seat_changed', data, broadcast=True, json=True)
 
 
 # Returns the current seat data for a given table_id in the DB
@@ -344,7 +345,7 @@ def verify_game_state(table_id):
         socketio.emit('trigger_betting_timer', end, broadcast=True)
         print("trigger_betting_timer")
     else:
-        socketio.emit('state_changed', state)
+        socketio.emit('state_changed', state, broadcast=True)
 
 
 @socketio.on('place_bet')

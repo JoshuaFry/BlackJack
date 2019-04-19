@@ -17,7 +17,7 @@
 
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
-        socket.t.emit('get_seat_data', '{{ table_id }}');
+        socket.emit('get_seat_data', '{{ table_id }}');
 
         {#jquery bindings#}
         $('#get_hand').click(function(){ get_hand(); return false;});

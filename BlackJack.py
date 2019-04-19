@@ -21,7 +21,7 @@ db = firebase.database()
 
 app = Flask(__name__)
 socketio = SocketIO(app)
-
+my_stream = None
 
 def login_required(func):
     @functools.wraps(func)
@@ -179,6 +179,7 @@ def leave_table(table_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
+    end_data_stream()
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -191,8 +192,14 @@ def is_user():
 
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
-    db.child(path).stream(stream_handler)
+    my_stream = db.child(path).stream(stream_handler)
     return
+
+
+def end_data_stream():
+    my_stream.close()
+    return
+
 
 
 # Method triggers on json changes - initialized from 'begin_data_stream(path)'

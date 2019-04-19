@@ -211,21 +211,21 @@ def stream_put(message):
     if path[0] == 'seats':
         if path[2] == 'name':
             data = {'seat': path[1], 'name': message['data']}
-            socketio.emit('seat_changed', data, broadcast=False, json=True)
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
         elif path[2] == 'bet':
             data = {'seat': path[1], 'bet': message['data']}
-            socketio.emit('bet_update', data, broadcast=False, json=True)
+            socketio.emit('bet_update', data, broadcast=True, json=True)
         elif path[2] == 'balance':
             data = {'seat': path[1], 'balance': message['data']}
-            socketio.emit('balance_update', data, broadcast=False, json=True)
+            socketio.emit('balance_update', data, broadcast=True, json=True)
         elif path[2] == 'hand':
             data = {'seat': path[1], 'hand': message['data']}
-            socketio.emit('hand_update', data, broadcast=False, json=True)
+            socketio.emit('hand_update', data, broadcast=True, json=True)
     if path[0] == 'state':
-        socketio.emit('state_changed', message['data'], broadcast=False)
+        socketio.emit('state_changed', message['data'], broadcast=True)
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
-        socketio.emit('hand_update',  data, broadcast=False, json=True)
+        socketio.emit('hand_update',  data, broadcast=True, json=True)
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -248,12 +248,12 @@ def handle_seat_data_change(data):
             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
         else:
             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-        socketio.emit('hand_update', data, broadcast=False, json=True)
+        socketio.emit('hand_update', data, broadcast=True, json=True)
         return
     else:
         print("Player joined or left table")
         data = {'seat': int(seatId), 'name': data[seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=False, json=True)
+        socketio.emit('seat_changed', data, broadcast=True, json=True)
 
 
 # Returns the current seat data for a given table_id in the DB
@@ -263,7 +263,7 @@ def get_seat_data(table_id):
     seat_names = []
     print(seat_data)
     print(seat_names)
-    socketio.emit('seat_data_acquired', seat_data, broadcast=False)
+    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
 
 
 @socketio.on('update_balance')
@@ -325,7 +325,7 @@ def write_hand_to_database(table_id):
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-1)
-    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
+    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
 
 
 def dealer_begin_betting_round(table_id):
@@ -341,7 +341,7 @@ def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
     if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
-        socketio.emit('trigger_betting_timer', end, broadcast=False)
+        socketio.emit('trigger_betting_timer', end, broadcast=True)
         print("trigger_betting_timer")
     else:
         socketio.emit('state_changed', state)
@@ -401,23 +401,23 @@ def check_win(table_id):
         win = user_data['bet'] * 3
         payout(win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info, broadcast=True)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['bet']
         payout(push)
         info = "Push $" + str(push) + ", it's a tie"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info, broadcast=True)
     elif user_hand_value > dealer_hand_value:
         win = user_data['bet'] * 2
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info, broadcast=True)
     else:
         payout(0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info, broadcast=True)
     clear_user_hand_and_bet(table_id)
 
 

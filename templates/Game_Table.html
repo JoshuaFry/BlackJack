@@ -38,6 +38,7 @@
                 if (seats[i]['name'] === "empty") playerCount--;
             }
             if(playerCount < 2){ //If no other players, begin betting round
+                console.log('socket: begin betting timer');
                 var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);

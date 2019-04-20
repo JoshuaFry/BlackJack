@@ -2,8 +2,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import pyrebase
 import time
-from flask_socketio import SocketIO, join_room, leave_room
-import eventlet
+from flask_socketio import SocketIO, join_room, leave_room, send
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -195,7 +194,7 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_handler)
-    # socketio.start_background_task(target=my_stream)
+    socketio.start_background_task(my_stream)
     return
 
 

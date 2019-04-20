@@ -194,12 +194,13 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     # my_stream = db.child(path).stream
-    socketio.start_background_task(db.child(path).stream, stream_put)
+    my_stream = socketio.start_background_task(db.child(path).stream, stream_put)
     return
 
 
 def end_data_stream():
-    my_stream.close()
+    # my_stream.close()
+
     return
 
 
@@ -237,7 +238,6 @@ def stream_put(message):
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
             socketio.emit('hand_update',  data, broadcast=True, room=table_id, json=True)
-        socketio.sleep(1)
 
 
 # # TODO: test if this case fires with two users if not remove function

@@ -3,6 +3,9 @@ import uuid, functools, os, random
 import pyrebase
 import time
 from flask_socketio import SocketIO, join_room, leave_room, send
+import eventlet
+
+eventlet.monkey_patch()
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -193,13 +196,13 @@ def is_user():
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     global my_stream
-    my_stream = db.child(path)  # .stream(stream_handler)
-    socketio.start_background_task(my_stream.stream, stream_put)
+    # my_stream = db.child(path).stream
+    socketio.start_background_task(db.child(path).stream, stream_put)
     return
 
 
 def end_data_stream():
-    my_stream.close()
+    # my_stream.close()
     return
 
 

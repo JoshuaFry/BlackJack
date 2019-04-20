@@ -1,1 +1,1 @@
-web: gunicorn -k flask_socketio BlackJack:app
+gunicorn --worker-class -w 1 BlackJack:app

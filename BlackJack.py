@@ -4,7 +4,6 @@ import pyrebase
 import time
 from flask_socketio import SocketIO, join_room, leave_room
 import eventlet
-eventlet.monkey_patch(socket=True)
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 

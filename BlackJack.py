@@ -555,6 +555,6 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.init_app(app, message_queue='redis://')
+    socketio.run(app, debug=True)
 
 

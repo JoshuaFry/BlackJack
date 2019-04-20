@@ -199,18 +199,18 @@ def begin_data_stream(path):
 
 
 def end_data_stream():
-    # my_stream.close()
+    my_stream.close()
     return
 
 
-# Method triggers on json changes - initialized from 'begin_data_stream(path)'
-def stream_handler(message):
-    with app.app_context():
-        if message['event'] == 'patch':
-            # return stream_patch(message)
-            return socketio.emit('update_put', message)
-        else:
-            return socketio.emit('update_put', message)  # stream_put(message)
+# # Method triggers on json changes - initialized from 'begin_data_stream(path)'
+# def stream_handler(message):
+#     with app.app_context():
+#         if message['event'] == 'patch':
+#             # return stream_patch(message)
+#             return socketio.emit('update_put', message)
+#         else:
+#             return socketio.emit('update_put', message)  # stream_put(message)
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
@@ -237,18 +237,19 @@ def stream_put(message):
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
             socketio.emit('hand_update',  data, broadcast=True, room=table_id, json=True)
+        socketio.sleep(1)
 
 
-# TODO: test if this case fires with two users if not remove function
-# Sends json changes to Game_table page via Flask-SocketIO
-def stream_patch(message):
-    print(message)
-    path = str(message["path"][1:]).split('/')
-    if path[0] == 'seats':
-        print("Seat Patch currently commented out")
-         # handle_seat_data_change(message['data'])
-    if path[0] == 'status':
-        print('Need to handle patch status')
+# # TODO: test if this case fires with two users if not remove function
+# # Sends json changes to Game_table page via Flask-SocketIO
+# def stream_patch(message):
+#     print(message)
+#     path = str(message["path"][1:]).split('/')
+#     if path[0] == 'seats':
+#         print("Seat Patch currently commented out")
+#          # handle_seat_data_change(message['data'])
+#     if path[0] == 'status':
+#         print('Need to handle patch status')
 
 
 # def handle_seat_data_change(data):

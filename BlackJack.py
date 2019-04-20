@@ -3,6 +3,8 @@ import uuid, functools, os, random
 import pyrebase
 import time
 from flask_socketio import SocketIO, join_room, leave_room
+import eventlet
+eventlet.monkey_patch(socket=True)
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -20,7 +22,7 @@ auth = firebase.auth()
 db = firebase.database()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='eventlet')
 my_stream = None
 
 
@@ -553,6 +555,6 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, message_queue='redis://')
 
 

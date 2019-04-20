@@ -194,8 +194,7 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_put)
-    my_stream.close()
-    socketio.start_background_task(my_stream)  # (db.child(path).stream, stream_put)
+    # socketio.start_background_task(db.child(path).stream, stream_put)
     return
 
 
@@ -219,25 +218,45 @@ def stream_put(message):
     with app.app_context():
         print(message)
         path = str(message["path"][1:]).split('/')
-        table_id = get_user_data()['tableId']
         if path[0] == 'seats':
             if path[2] == 'name':
                 data = {'seat': path[1], 'name': message['data']}
-                socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
+                socketio.start_background_task(stream_seat_changed, data)
             elif path[2] == 'bet':
                 data = {'seat': path[1], 'bet': message['data']}
-                socketio.emit('bet_update', data, broadcast=True, room=table_id, json=True)
+                socketio.start_background_task(stream_bet_update, data)
             elif path[2] == 'balance':
                 data = {'seat': path[1], 'balance': message['data']}
-                socketio.emit('balance_update', data, broadcast=True, room=table_id, json=True)
+                socketio.start_background_task(stream_balance_update, data)
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
-                socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
+                socketio.start_background_task(stream_hand_update, data)
         if path[0] == 'state':
-            socketio.emit('state_changed', message['data'], broadcast=True, room=table_id)
+            socketio.start_background_task(stream_state_changed, message['data'])
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
-            socketio.emit('hand_update',  data, broadcast=True, room=table_id, json=True)
+            socketio.start_background_task(stream_hand_update, data)
+
+
+def stream_seat_changed(data):
+    table_id = get_user_data()['tableId']
+    socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
+
+def stream_bet_update(data):
+    table_id = get_user_data()['tableId']
+    socketio.emit('bet_update', data, broadcast=True, room=table_id, json=True)
+
+def stream_balance_update(data):
+    table_id = get_user_data()['tableId']
+    socketio.emit('balance_update', data, broadcast=True, room=table_id, json=True)
+
+def stream_hand_update(data):
+    table_id = get_user_data()['tableId']
+    socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
+
+def stream_state_changed(data):
+    table_id = get_user_data()['tableId']
+    socketio.emit('state_changed', data, broadcast=True, room=table_id)
 
 
 # # TODO: test if this case fires with two users if not remove function

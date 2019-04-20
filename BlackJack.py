@@ -2,10 +2,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import pyrebase
 import time
-from flask_socketio import SocketIO, join_room, leave_room, send
-import eventlet
-
-eventlet.monkey_patch()
+from flask_socketio import SocketIO, join_room, leave_room
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 

@@ -2,7 +2,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import pyrebase
 import time
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -94,7 +94,7 @@ def signin_user():
         auth.refresh(user['refreshToken'])
         user_data = get_user_data()
     except:
-        message= "invalid credentials"
+        message = "invalid credentials"
         return render_template("Login_Register.html",message=message)
     return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
 
@@ -217,24 +217,25 @@ def stream_handler(message):
 def stream_put(message):
     print(message)
     path = str(message["path"][1:]).split('/')
+    table_id = get_user_data()['tableId']
     if path[0] == 'seats':
         if path[2] == 'name':
             data = {'seat': path[1], 'name': message['data']}
-            socketio.emit('seat_changed', data, broadcast=True, json=True)
+            socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
         elif path[2] == 'bet':
             data = {'seat': path[1], 'bet': message['data']}
-            socketio.emit('bet_update', data, broadcast=True, json=True)
+            socketio.emit('bet_update', data, broadcast=True, room=table_id, json=True)
         elif path[2] == 'balance':
             data = {'seat': path[1], 'balance': message['data']}
-            socketio.emit('balance_update', data, broadcast=True, json=True)
+            socketio.emit('balance_update', data, broadcast=True, room=table_id, json=True)
         elif path[2] == 'hand':
             data = {'seat': path[1], 'hand': message['data']}
-            socketio.emit('hand_update', data, broadcast=True, json=True)
+            socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
     if path[0] == 'state':
-        socketio.emit('state_changed', message['data'], broadcast=True)
+        socketio.emit('state_changed', message['data'], broadcast=True, room=table_id)
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
-        socketio.emit('hand_update',  data, broadcast=True, json=True)
+        socketio.emit('hand_update',  data, broadcast=True, room=table_id, json=True)
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -257,12 +258,12 @@ def handle_seat_data_change(data):
             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
         else:
             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-        socketio.emit('hand_update', data, broadcast=True, json=True)
+        socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
         return
     else:
         print("Player joined or left table")
         data = {'seat': int(seatId), 'name': data[seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=True, json=True)
+        socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
 
 
 # Returns the current seat data for a given table_id in the DB
@@ -272,7 +273,7 @@ def get_seat_data(table_id):
     seat_names = []
     print(seat_data)
     print(seat_names)
-    socketio.emit('seat_data_acquired', seat_data, broadcast=True)
+    socketio.emit('seat_data_acquired', seat_data, broadcast=True, room=table_id)
 
 
 @socketio.on('update_balance')
@@ -334,7 +335,7 @@ def write_hand_to_database(table_id):
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-1)
-    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True)
+    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=True, room=table_id)
 
 
 def dealer_begin_betting_round(table_id):
@@ -350,10 +351,10 @@ def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
     if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
-        socketio.emit('trigger_betting_timer', end, broadcast=True)
+        socketio.emit('trigger_betting_timer', end, broadcast=True, room=table_id)
         print("trigger_betting_timer")
     else:
-        socketio.emit('state_changed', state, broadcast=True)
+        socketio.emit('state_changed', state, broadcast=True, room=table_id)
 
 
 @socketio.on('place_bet')
@@ -410,23 +411,23 @@ def check_win(table_id):
         win = user_data['bet'] * 3
         payout(win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
-        socketio.emit('info', info, broadcast=True)
+        socketio.emit('info', info, broadcast=True, room=table_id)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['bet']
         payout(push)
         info = "Push $" + str(push) + ", it's a tie"
-        socketio.emit('info', info, broadcast=True)
+        socketio.emit('info', info, broadcast=True, room=table_id)
     elif user_hand_value > dealer_hand_value:
         win = user_data['bet'] * 2
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
-        socketio.emit('info', info, broadcast=True)
+        socketio.emit('info', info, broadcast=True, room=table_id)
     else:
         payout(0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
-        socketio.emit('info', info, broadcast=True)
+        socketio.emit('info', info, broadcast=True, room=table_id)
     clear_user_hand_and_bet(table_id)
 
 
@@ -519,6 +520,19 @@ def get_non_ready_players(table_id):
                 non_ready_players.append(i + 1)
     return non_ready_players
 
+
+@socketio.on('join')
+def on_join(table_id):
+    username = get_user_data()['userName']
+    join_room(table_id)
+    print(username + ' has entered the room. ' + table_id)
+
+
+@socketio.on('leave')
+def on_leave(table_id):
+    username = get_user_data()['userName']
+    leave_room(table_id)
+    print(username + ' has left the room. ' + table_id)
 
 
 def create_all_tables():

@@ -194,7 +194,7 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_handler)
-    socketio.start_background_task(target=my_stream)
+    # socketio.start_background_task(target=my_stream)
     return
 
 
@@ -250,20 +250,20 @@ def stream_patch(message):
         print('Need to handle patch status')
 
 
-def handle_seat_data_change(data):
-    seatId = next(iter(data))
-    if 'hand' in data[seatId]:
-        print(data[seatId]['hand'])
-        if type(data[seatId]['hand']) == list:
-            data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
-        else:
-            data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-        socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
-        return
-    else:
-        print("Player joined or left table")
-        data = {'seat': int(seatId), 'name': data[seatId]['name']}
-        socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
+# def handle_seat_data_change(data):
+#     seatId = next(iter(data))
+#     if 'hand' in data[seatId]:
+#         print(data[seatId]['hand'])
+#         if type(data[seatId]['hand']) == list:
+#             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
+#         else:
+#             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
+#         socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
+#         return
+#     else:
+#         print("Player joined or left table")
+#         data = {'seat': int(seatId), 'name': data[seatId]['name']}
+#         socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
 
 
 # Returns the current seat data for a given table_id in the DB

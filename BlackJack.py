@@ -193,8 +193,7 @@ def is_user():
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     global my_stream
-    my_stream = db.child(path).stream(stream_handler)
-    socketio.start_background_task(my_stream, my_stream.thread)
+    my_stream = socketio.start_background_task(db.child(path).stream, my_stream)
     return
 
 

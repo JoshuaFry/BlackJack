@@ -208,9 +208,9 @@ def end_data_stream():
 #     with app.app_context():
 #         if message['event'] == 'patch':
 #             # return stream_patch(message)
-#             return sockio.emit('update_put', message)
+#             return socketio.emit('update_put', message)
 #         else:
-#             return sockio.emit('update_put', message)  # stream_put(message)
+#             return socketio.emit('update_put', message)  # stream_put(message)
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
@@ -247,28 +247,28 @@ def stream_put(message):
 def stream_seat_changed(data):
     table_id = get_user_data()['tableId']
     print("room: " + table_id + " data: " + data)
-    sockio.emit('seat_changed', data,  room=table_id, json=True)
+    socketio.emit('seat_changed', data,  room=table_id, json=True)
 
 def stream_bet_update(data):
     table_id = get_user_data()['tableId']
     print("room: " + table_id + " data: " + data)
-    sockio.emit('bet_update', data,  room=table_id, json=True)
+    socketio.emit('bet_update', data,  room=table_id, json=True)
 
 def stream_balance_update(data):
     table_id = get_user_data()['tableId']
     print("room: " + table_id + " data: " + data)
-    sockio.emit('balance_update', data,  room=table_id, json=True)
+    socketio.emit('balance_update', data,  room=table_id, json=True)
 
 def stream_hand_update(data):
     table_id = get_user_data()['tableId']
     print("room: " + table_id + " data: " + data)
-    sockio.emit('hand_update', data,  room=table_id, json=True)
+    socketio.emit('hand_update', data,  room=table_id, json=True)
 
 def stream_state_changed(data):
     # with app.app_context():
     table_id = get_user_data()['tableId']
     print("room: " + table_id + " data: " + data)
-    sockio.emit('state_changed', data,  room=table_id)
+    socketio.emit('state_changed', data,  room=table_id)
 
 
 # Returns the current seat data for a given table_id in the DB
@@ -278,7 +278,7 @@ def get_seat_data(table_id):
     seat_names = []
     print(seat_data)
     print(seat_names)
-    sockio.emit('seat_data_acquired', seat_data,  room=table_id)
+    socketio.emit('seat_data_acquired', seat_data,  room=table_id)
 
 
 @socketio.on('update_balance')
@@ -340,7 +340,7 @@ def write_hand_to_database(table_id):
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-1)
-    # sockio.emit('trigger_betting_timer', data['end_bet_by'],  room=table_id)
+    # socketio.emit('trigger_betting_timer', data['end_bet_by'],  room=table_id)
 
 
 def dealer_begin_betting_round(table_id):
@@ -356,10 +356,10 @@ def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
     if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
-        sockio.emit('trigger_betting_timer', end,  room=table_id)
+        socketio.emit('trigger_betting_timer', end,  room=table_id)
         print("trigger_betting_timer")
     else:
-        sockio.emit('state_changed', state,  room=table_id)
+        socketio.emit('state_changed', state,  room=table_id)
 
 
 @socketio.on('place_bet')
@@ -416,23 +416,23 @@ def check_win(table_id):
         win = user_data['bet'] * 3
         payout(win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
-        sockio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,  room=table_id)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['bet']
         payout(push)
         info = "Push $" + str(push) + ", it's a tie"
-        sockio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,  room=table_id)
     elif user_hand_value > dealer_hand_value:
         win = user_data['bet'] * 2
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
-        sockio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,  room=table_id)
     else:
         payout(0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
-        sockio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,  room=table_id)
     clear_user_hand_and_bet(table_id)
 
 

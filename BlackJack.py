@@ -2,7 +2,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import pyrebase
 import time
-from flask_socketio import SocketIO, join_room, leave_room
+from flask_socketio import SocketIO, join_room, leave_room, send
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -239,52 +239,29 @@ def stream_put(message):
 
 
 def stream_seat_changed(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
 
 def stream_bet_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('bet_update', data, broadcast=True, room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('bet_update', data, broadcast=True, room=table_id, json=True)
 
 def stream_balance_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('balance_update', data, broadcast=True, room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('balance_update', data, broadcast=True, room=table_id, json=True)
 
 def stream_hand_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
 
 def stream_state_changed(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('state_changed', data, broadcast=True, room=table_id)
-
-
-# # TODO: test if this case fires with two users if not remove function
-# # Sends json changes to Game_table page via Flask-SocketIO
-# def stream_patch(message):
-#     print(message)
-#     path = str(message["path"][1:]).split('/')
-#     if path[0] == 'seats':
-#         print("Seat Patch currently commented out")
-#          # handle_seat_data_change(message['data'])
-#     if path[0] == 'status':
-#         print('Need to handle patch status')
-
-
-# def handle_seat_data_change(data):
-#     seatId = next(iter(data))
-#     if 'hand' in data[seatId]:
-#         print(data[seatId]['hand'])
-#         if type(data[seatId]['hand']) == list:
-#             data = {'seat': int(seatId), 'hand': data[seatId]['hand'][1:][0]}
-#         else:
-#             data = {'seat': int(seatId), 'hand': data[seatId]['hand']}
-#         socketio.emit('hand_update', data, broadcast=True, room=table_id, json=True)
-#         return
-#     else:
-#         print("Player joined or left table")
-#         data = {'seat': int(seatId), 'name': data[seatId]['name']}
-#         socketio.emit('seat_changed', data, broadcast=True, room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('state_changed', data, broadcast=True, room=table_id)
 
 
 # Returns the current seat data for a given table_id in the DB

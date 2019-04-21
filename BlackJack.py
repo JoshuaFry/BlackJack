@@ -245,28 +245,33 @@ def stream_put(message):
 
 
 def stream_seat_changed(data):
-    # with app.app_context():
-    table_id = get_user_data()['tableId']
-    emit('seat_changed', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        print("room: " + table_id + " data: " + data)
+        emit('seat_changed', data,  room=table_id, json=True)
 
 def stream_bet_update(data):
-    # with app.app_context():
-    table_id = get_user_data()['tableId']
-    emit('bet_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        print("room: " + table_id + " data: " + data)
+        emit('bet_update', data,  room=table_id, json=True)
 
 def stream_balance_update(data):
-    # with app.app_context():
-    table_id = get_user_data()['tableId']
-    emit('balance_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        print("room: " + table_id + " data: " + data)
+        emit('balance_update', data,  room=table_id, json=True)
 
 def stream_hand_update(data):
-    # with app.app_context():
-    table_id = get_user_data()['tableId']
-    emit('hand_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        print("room: " + table_id + " data: " + data)
+        emit('hand_update', data,  room=table_id, json=True)
 
 def stream_state_changed(data):
     # with app.app_context():
     table_id = get_user_data()['tableId']
+    print("room: " + table_id + " data: " + data)
     emit('state_changed', data,  room=table_id)
 
 

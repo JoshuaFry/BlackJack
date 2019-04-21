@@ -3,6 +3,7 @@ import uuid, functools, os, random
 import pyrebase
 import time
 from flask_socketio import SocketIO, join_room, leave_room, emit
+import eventlet
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -22,6 +23,9 @@ db = firebase.database()
 app = Flask(__name__)
 socketio = SocketIO(app)
 my_stream = None
+
+eventlet.monkey_patch()
+
 
 
 def login_required(func):

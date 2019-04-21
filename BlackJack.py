@@ -194,6 +194,9 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_put)
+    # With the below background call I was limited in the amount emit calls
+    # that would make it through in the stream_put function. The data can
+    # change multiple times per second
     # socketio.start_background_task(db.child(path).stream, stream_put)
     return
 

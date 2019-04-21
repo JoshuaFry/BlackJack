@@ -221,49 +221,53 @@ def stream_put(message):
         if path[0] == 'seats':
             if path[2] == 'name':
                 data = {'seat': path[1], 'name': message['data']}
-                # socketio.start_background_task(stream_seat_changed, data)
-                stream_seat_changed(data)
+                socketio.start_background_task(stream_seat_changed, data)
+                # stream_seat_changed(data)
             elif path[2] == 'bet':
                 data = {'seat': path[1], 'bet': message['data']}
-                # socketio.start_background_task(stream_bet_update, data)
-                stream_bet_update(data)
+                socketio.start_background_task(stream_bet_update, data)
+                # stream_bet_update(data)
             elif path[2] == 'balance':
                 data = {'seat': path[1], 'balance': message['data']}
-                # socketio.start_background_task(stream_balance_update, data)
-                stream_balance_update(data)
+                socketio.start_background_task(stream_balance_update, data)
+                # stream_balance_update(data)
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
-                # socketio.start_background_task(stream_hand_update, data)
-                stream_hand_update(data)
+                socketio.start_background_task(stream_hand_update, data)
+                # stream_hand_update(data)
         if path[0] == 'state':
-            # socketio.start_background_task(stream_state_changed, message['data'])
-            stream_state_changed(message['data'])
+            socketio.start_background_task(stream_state_changed, message['data'])
+            # stream_state_changed(message['data'])
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
-            # socketio.start_background_task(stream_hand_update, data)
-            stream_hand_update(data)
+            socketio.start_background_task(stream_hand_update, data)
+            #  stream_hand_update(data)
 
 
 def stream_seat_changed(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('seat_changed', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('seat_changed', data,  room=table_id, json=True)
 
 def stream_bet_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('bet_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('bet_update', data,  room=table_id, json=True)
 
 def stream_balance_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('balance_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('balance_update', data,  room=table_id, json=True)
 
 def stream_hand_update(data):
-    table_id = get_user_data()['tableId']
-    socketio.emit('hand_update', data,  room=table_id, json=True)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('hand_update', data,  room=table_id, json=True)
 
 def stream_state_changed(data):
-    # with app.app_context():
-    table_id = get_user_data()['tableId']
-    socketio.emit('state_changed', data,  room=table_id)
+    with app.app_context():
+        table_id = get_user_data()['tableId']
+        socketio.emit('state_changed', data,  room=table_id)
 
 
 # Returns the current seat data for a given table_id in the DB

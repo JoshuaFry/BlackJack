@@ -1,8 +1,12 @@
 from flask import Flask, request, render_template
 import uuid, functools, os, random
-import pyrebase
 import time
-from flask_socketio import SocketIO, join_room, leave_room
+import eventlet
+SocketIO = eventlet.import_patched('flask_socketio.SocketIO')
+join_room = eventlet.import_patched('flask_socketio.join_room')
+leave_room = eventlet.import_patched('flask_socketio.leave_room')
+pyrebase = eventlet.import_patched('pyrebase')
+
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 

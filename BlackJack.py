@@ -1,12 +1,10 @@
 from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time
-import eventlet
-SocketIO = eventlet.import_patched('flask_socketio.SocketIO')
-join_room = eventlet.import_patched('flask_socketio.join_room')
-leave_room = eventlet.import_patched('flask_socketio.leave_room')
-pyrebase = eventlet.import_patched('pyrebase')
-
+from gevent import monkey
+from flask_socketio import SocketIO, join_room, leave_room
+import pyrebase
+monkey.patch_all()
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -41,7 +39,7 @@ def login_required(func):
 
 @app.route('/', methods=['GET'])
 def home():
-    # create_all_tables()
+    print("pyrebase-patched? : " + str(monkey.is_module_patched('pyrebase')))
     return render_template("index.html", title="Homepage", user=is_user())
 
 

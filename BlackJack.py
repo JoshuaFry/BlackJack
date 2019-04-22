@@ -561,8 +561,8 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    import eventlet
-    eventlet.monkey_patch()
+    # import eventlet
+    # eventlet.monkey_patch()
     socketio.run(app, debug=True)
 
 

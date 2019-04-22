@@ -198,7 +198,7 @@ def begin_data_stream(path):
     # change multiple times per second
     # socketio.start_background_task(db.child(path).stream, stream_put)
     socketio.start_background_task(my_stream)
-    # pyrebase.pyrebase.Stream # Stream class now has no auto start
+    # pyrebase.pyrebase.Stream # Stream class now has no auto s
     return
 
 
@@ -561,6 +561,8 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
+    import eventlet
+    eventlet.monkey_patch()
     socketio.run(app, debug=True)
 
 

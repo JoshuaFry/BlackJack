@@ -1,10 +1,11 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time
-from gevent import monkey
 from flask_socketio import SocketIO, join_room, leave_room
 import pyrebase
-monkey.patch_all()
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -39,7 +40,7 @@ def login_required(func):
 
 @app.route('/', methods=['GET'])
 def home():
-    print("pyrebase-patched? : " + str(monkey.is_module_patched('pyrebase')))
+    # create_all_tables()
     return render_template("index.html", title="Homepage", user=is_user())
 
 

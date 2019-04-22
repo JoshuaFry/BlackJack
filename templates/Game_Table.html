@@ -13,7 +13,7 @@
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port, {transports: ['websocket']}); //{transports: ['websocket']}
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port); //{transports: ['websocket']}
         socket.emit('join', '{{ table_id }}');
 
         var nameId = 'name'+{{ seat_id }};

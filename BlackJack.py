@@ -197,7 +197,7 @@ def begin_data_stream(path):
     # that would make it through in the stream_put function. The data can
     # change multiple times per second
     # socketio.start_background_task(db.child(path).stream, stream_put)
-    socketio.start_background_task(my_stream)
+    socketio.start_background_task(my_stream, socketio=socketio)
     # pyrebase.pyrebase.Stream # Stream class now has no auto s
     return
 
@@ -218,6 +218,7 @@ def end_data_stream():
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
+@socketio.on('data_stream')
 def stream_put(message):
     table_id = get_user_data()['tableId']
     with app.app_context():
@@ -226,19 +227,23 @@ def stream_put(message):
         if path[0] == 'seats':
             if path[2] == 'name':
                 data = {'seat': path[1], 'name': message['data']}
-                socketio.start_background_task(stream_seat_changed, data)
+                socketio.emit('seat_changed', data, room=table_id, broadcast=True, json=True)
+                # socketio.start_background_task(stream_seat_changed, data)
                 # stream_seat_changed(data)
             elif path[2] == 'bet':
                 data = {'seat': path[1], 'bet': message['data']}
-                socketio.start_background_task(stream_bet_update, data)
+                socketio.emit('bet_update', data, room=table_id, broadcast=True, json=True)
+                # socketio.start_background_task(stream_bet_update, data)
                 # stream_bet_update(data)
             elif path[2] == 'balance':
                 data = {'seat': path[1], 'balance': message['data']}
-                socketio.start_background_task(stream_balance_update, data)
+                socketio.emit('balance_update', data, room=table_id, broadcast=True, json=True)
+                # socketio.start_background_task(stream_balance_update, data)
                 # stream_balance_update(data)
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
-                socketio.start_background_task(stream_hand_update, data)
+                socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
+                # socketio.start_background_task(stream_hand_update, data)
                 # stream_hand_update(data)
         if path[0] == 'state':
             # socketio.start_background_task(stream_state_changed, message['data'])
@@ -247,7 +252,8 @@ def stream_put(message):
 
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
-            socketio.start_background_task(stream_hand_update, data)
+            socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
+            # socketio.start_background_task(stream_hand_update, data)
             # stream_hand_update(data)
 
 
@@ -564,8 +570,6 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    import eventlet
-    eventlet.monkey_patch()
     socketio.run(app, debug=True)
 
 

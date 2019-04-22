@@ -243,7 +243,7 @@ def stream_put(message):
         if path[0] == 'state':
             # socketio.start_background_task(stream_state_changed, message['data'])
             # stream_state_changed(message['data'])
-            socketio.emit('state_changed', data, room=table_id)
+            socketio.emit('state_changed', message['data'], room=table_id)
 
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}

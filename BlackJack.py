@@ -249,29 +249,29 @@ def stream_put(message):
 
 
 def stream_seat_changed(data):
-    with app.app_context():
-        table_id = get_user_data()['tableId']
-        socketio.emit('seat_changed', data,  room=table_id, json=True)
+    table_id = get_user_data()['tableId']
+    print("room: " + table_id)
+    socketio.emit('seat_changed', data,  room=table_id, broadcast=True,  json=True)
 
 def stream_bet_update(data):
-    with app.app_context():
-        table_id = get_user_data()['tableId']
-        socketio.emit('bet_update', data,  room=table_id, json=True)
+    table_id = get_user_data()['tableId']
+    print("room: " + table_id)
+    socketio.emit('bet_update', data,  room=table_id, broadcast=True,  json=True)
 
 def stream_balance_update(data):
-    with app.app_context():
-        table_id = get_user_data()['tableId']
-        socketio.emit('balance_update', data,  room=table_id, json=True)
+    table_id = get_user_data()['tableId']
+    print("room: " + table_id)
+    socketio.emit('balance_update', data,  room=table_id, broadcast=True,  json=True)
 
 def stream_hand_update(data):
-    with app.app_context():
-        table_id = get_user_data()['tableId']
-        socketio.emit('hand_update', data,  room=table_id, json=True)
+    table_id = get_user_data()['tableId']
+    print("room: " + table_id)
+    socketio.emit('hand_update', data,  room=table_id, broadcast=True,  json=True)
 
 def stream_state_changed(data):
-    with app.app_context():
-        table_id = get_user_data()['tableId']
-        socketio.emit('state_changed', data,  room=table_id)
+    table_id = get_user_data()['tableId']
+    print("room: " + table_id)
+    socketio.emit('state_changed', data,  room=table_id)
 
 
 # Returns the current seat data for a given table_id in the DB

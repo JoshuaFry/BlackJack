@@ -198,7 +198,7 @@ def begin_data_stream(path):
     # change multiple times per second
     # socketio.start_background_task(db.child(path).stream, stream_put)
     socketio.start_background_task(my_stream)
-    # pyrebase.pyrebase.Stream
+    # pyrebase.pyrebase.Stream # Stream class now has no auto start
     return
 
 
@@ -561,6 +561,8 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
+    from gevent import monkey
+    monkey.patch_all()
     socketio.run(app, debug=True)
 
 

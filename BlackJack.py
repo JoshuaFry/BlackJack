@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time

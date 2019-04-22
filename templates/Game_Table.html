@@ -30,6 +30,10 @@
         $('div#betting_UI').hide();
 
         {#SOCKET FUNCTIONS#}
+        socket.on('connectToRoom',function(data) {
+            console.log(data);
+        });
+
         socket.on('seat_data_acquired', function (seats) {
             console.log(seats);
             var playerCount = 6;

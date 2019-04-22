@@ -17,7 +17,6 @@ config = {
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
-
 app = Flask(__name__)
 socketio = SocketIO(app)
 my_stream = None
@@ -570,6 +569,6 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=False)
 
 

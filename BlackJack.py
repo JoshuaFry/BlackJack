@@ -211,22 +211,23 @@ def stream_put(message):
     if path[0] == 'seats':
         if path[2] == 'name':
             data = {'seat': path[1], 'name': message['data']}
-            socketio.emit('seat_changed', data, broadcast=False, json=True)
+            socketio.emit('seat_changed', data, broadcast=True, json=True)
         elif path[2] == 'bet':
             data = {'seat': path[1], 'bet': message['data']}
-            socketio.emit('bet_update', data, broadcast=False, json=True)
+            socketio.emit('bet_update', data, broadcast=True, json=True)
         elif path[2] == 'balance':
             data = {'seat': path[1], 'balance': message['data']}
-            socketio.emit('balance_update', data, broadcast=False, json=True)
+            socketio.emit('balance_update', data, broadcast=True, json=True)
         elif path[2] == 'hand':
             data = {'seat': path[1], 'hand': message['data']}
-            socketio.emit('hand_update', data, broadcast=False, json=True)
+            socketio.emit('hand_update', data, broadcast=True, json=True)
     if path[0] == 'state':
-        socketio.emit('state_changed', message['data'], broadcast=False)
+        socketio.emit('state_changed', message['data'], broadcast=True)
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
-        socketio.emit('hand_update',  data, broadcast=False, json=True)
-
+        socketio.emit('hand_update',  data, broadcast=True, json=True)
+    if path[0] == 'endBettingBy':
+        socketio.emit('trigger_betting_timer', message['data'], broadcast=True, json=True)
 
 # TODO: test if this case fires with two users if not remove function
 # Sends json changes to Game_table page via Flask-SocketIO

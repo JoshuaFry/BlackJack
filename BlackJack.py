@@ -191,12 +191,12 @@ def is_user():
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     global my_stream
-    my_stream = db.child(path).stream2(path, socketio=socketio)
+    my_stream = db.child(path).stream(stream_put)
     # With the below background call I was limited in the amount emit calls
     # that would make it through in the stream_put function. The data can
     # change multiple times per second
     # socketio.start_background_task(db.child(path).stream, stream_put)
-    socketio.start_background_task(my_stream)
+    # socketio.start_background_task(my_stream)
     # pyrebase.pyrebase.Stream # Stream class now has no auto s
     return
 
@@ -217,7 +217,6 @@ def end_data_stream():
 
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
-@socketio.on('data_stream')
 def stream_put(message):
     table_id = get_user_data()['tableId']
     with app.app_context():

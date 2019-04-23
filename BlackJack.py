@@ -191,7 +191,7 @@ def is_user():
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     global my_stream
-    my_stream = db.child(path).stream(path, socketio=socketio)
+    my_stream = db.child(path).stream2(path, socketio=socketio)
     # With the below background call I was limited in the amount emit calls
     # that would make it through in the stream_put function. The data can
     # change multiple times per second

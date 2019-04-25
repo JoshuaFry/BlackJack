@@ -414,6 +414,11 @@ def check_win(table_id):
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
         socketio.emit('info', info, broadcast=False)
+    elif user_hand_value > 21:
+        payout(0)
+        info = "You lost $" + str(user_data['bet']) + ".... Sad"
+        socketio.emit('info', info, broadcast=False)
+
     else:
         payout(0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
@@ -495,6 +500,21 @@ def get_ready_players(table_id):
             print(seat_data[i])
             ready_players.append(i + 1)
     return ready_players
+
+
+@socketio.on('doubleBet')
+def doubleBet(table_id):
+    user_data=get_user_data()
+    userId = auth.current_user['localId']
+    bet=user_data['bet']
+    balance = user_data['balance']
+    balance -= bet
+    seat_id=user_data['seatId']
+    db.child("users").child(userId).child("balance").set(balance)
+    bet *= 2
+    db.child("users").child(userId).child("bet").set(bet)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
 
 
 def create_all_tables():

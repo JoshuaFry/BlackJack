@@ -18,7 +18,7 @@ config = {
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
-
+stream = None
 app = Flask(__name__)
 socketio = SocketIO(app)
 
@@ -178,6 +178,7 @@ def leave_table(table_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
+    close_data_stream()
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -190,7 +191,13 @@ def is_user():
 
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
-    db.child(path).stream(stream_handler)
+    global stream
+    stream = db.child(path).stream(stream_handler)
+    return
+
+def close_data_stream():
+    global stream
+    stream.close()
     return
 
 
@@ -228,6 +235,7 @@ def stream_put(message):
         socketio.emit('hand_update',  data, broadcast=True, json=True)
     if path[0] == 'endBettingBy':
         socketio.emit('trigger_betting_timer', message['data'], broadcast=True, json=True)
+
 
 # TODO: test if this case fires with two users if not remove function
 # Sends json changes to Game_table page via Flask-SocketIO
@@ -409,7 +417,12 @@ def check_win(table_id):
         payout(push)
         info = "Push $" + str(push) + ", it's a tie"
         socketio.emit('info', info, broadcast=False)
-    elif user_hand_value > dealer_hand_value:
+    elif dealer_hand_value < user_hand_value <= 21:
+        win = user_data['bet'] * 2
+        payout(win)
+        info = "You Won $" + str(win) + "! Keep it up!"
+        socketio.emit('info', info, broadcast=False)
+    elif dealer_hand_value > 21 >= user_hand_value:
         win = user_data['bet'] * 2
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"

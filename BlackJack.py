@@ -497,8 +497,6 @@ def deal_cards(table_id):
         db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
         db.child("tables").child(table_id).child("state").set(ready_players[0])
     return
-
-
 # Any player with a bet greater than 0
 def get_ready_players(table_id):
     seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
@@ -509,6 +507,20 @@ def get_ready_players(table_id):
             ready_players.append(i + 1)
     return ready_players
 
+
+@socketio.on('double_down')
+def double_down(table_id):
+    user_data = get_user_data()
+    bet = user_data['bet']
+    balance = user_data['balance']
+    seat_id = user_data['seatId']
+    userId = auth.current_user['localId']
+    balance -= bet
+    db.child("users").child(userId).child("bet").set(bet)
+    bet *= 2
+    db.child("users").child(userId).child("balance").set(balance)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
 
 def create_all_tables():
     for i in range(3):

@@ -233,8 +233,7 @@ def stream_put(message):
     if path[0] == 'dealer':
         data = {'seat': 7, 'hand': message['data']}
         socketio.emit('hand_update',  data, broadcast=True, json=True)
-    if path[0] == 'endBettingBy':
-        socketio.emit('trigger_betting_timer', message['data'], broadcast=True, json=True)
+
 
 
 # TODO: test if this case fires with two users if not remove function
@@ -315,7 +314,7 @@ def hit():
 @socketio.on('hit')
 def write_hand_to_database(table_id):
     seat_id = get_user_data()['seatId']
-    hand = get_current_hand(seat_id,table_id)
+    hand = get_current_hand(seat_id, table_id)
     if len(hand) == 0:
         return
     card = hit()
@@ -333,15 +332,19 @@ def write_hand_to_database(table_id):
 @socketio.on('begin_betting')
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
+    db.child("tables").child(data['table_id']).child("state").set(-9)
     db.child("tables").child(data['table_id']).child("state").set(-1)
     # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
+    print("Begin Betting, -1")
 
 
 def dealer_begin_betting_round(table_id):
     FORTY_FIVE_SECONDS = (1000 * 45)
     end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
     db.child("tables").child(table_id).child("endBettingBy").set(end)
+    db.child("tables").child(table_id).child("state").set(-9)
     db.child("tables").child(table_id).child("state").set(-1)
+    print("Dealer Began Betting, -1")
 
 
 @socketio.on('verify_game_state')
@@ -451,12 +454,14 @@ def clear_user_hand_and_bet(table_id):
 
 
 def dealers_turn(table_id):
+    print("Its the dealer turn")
     hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     card = hit()
     hand.update(card)
     while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
+        time.sleep(2)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)
@@ -505,7 +510,6 @@ def get_ready_players(table_id):
     ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] > 0:
-            print(seat_data[i])
             ready_players.append(i + 1)
     return ready_players
 

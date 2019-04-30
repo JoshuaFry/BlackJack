@@ -132,10 +132,6 @@
             socket.emit('hit', '{{ table_id }}');
         }
 
-         function doubleDown() {
-            hit()
-            socket.emit('double_down','{{ table_id }}');
-        }
         function endBetting(){
             socket.emit('end_betting', '{{ table_id }}');
         }
@@ -149,7 +145,7 @@
         }
 
         function doubleDown() {
-            socket.emit('doubleBet', '{{ table_id }}');
+            socket.emit('double_down', '{{ table_id }}');
             hit();
             stand();
         }
@@ -320,11 +316,8 @@
                 {% if (i == seat_id) %}
                     <div id="turn_UI">
 {#                         <a id="get_hand">Get Hand</a> | #}
-<<<<<<< HEAD
                         <a id="hit">Hit</a> | <a id="stand" >Stand</a>| <a id="doubleDown" >doubleDown</a>
-=======
-                       <a id="hit">Hit</a> | <a id="stand" >Stand</a>| <a id="doubleDown">DoubleDown</a>
->>>>>>> 152230eff5e0d7cd0b9864efc07563e18042b985
+
                     </div>
                     <div id="betting_UI">
                         [min: 20 max: 2000] <br><label>

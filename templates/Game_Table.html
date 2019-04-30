@@ -10,12 +10,12 @@
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
 
-    $(document).ready(function(){
+    $(document).ready(function() {
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
-        var nameId = 'name'+{{ seat_id }};
+        var nameId = 'name' +{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
         socket.emit('get_seat_data', '{{ table_id }}');
 
@@ -27,6 +27,7 @@
         $('#doubleDown').click(function () { doubleDown()});
 
 
+
         $('div#turn_UI').hide();
         $('div#betting_UI').hide();
 
@@ -34,101 +35,103 @@
         socket.on('seat_data_acquired', function (seats) {
             console.log(seats);
             var playerCount = 6;
-            for(var i = 0; i < seats.length; i++) {
+            for (var i = 0; i < seats.length; i++) {
                 var id = i + 1;
                 update_player_UI(seats[i], id);
                 if (seats[i]['name'] === "empty") playerCount--;
             }
-            if(playerCount < 2){ //If no other players, begin betting round
+            if (playerCount < 2) { //If no other players, begin betting round
                 var end_bet_by = new Date().getTime() + FORTY_FIVE_SECONDS;
                 var data = {"end_bet_by": end_bet_by, "table_id": '{{ table_id }}'};
                 socket.emit('begin_betting', data);
-            }else{
+            } else {
                 socket.emit('verify_game_state', '{{ table_id }}');
             }
         });
         socket.on('info', function (info) {
-           $('#info').html(info);
+            $('#info').html(info);
         });
 
-        socket.on('seat_changed', function(msg) {
+        socket.on('seat_changed', function (msg) {
             // $('div#log').append('<p>Seat_Changed: ' + msg['seat'] +' ' + msg['name'] + '</p>');
-            var nameId = 'name'+msg['seat'];
+            var nameId = 'name' + msg['seat'];
             document.getElementById(nameId).innerHTML = msg['name'];
         });
 
-        socket.on('hand_update', function(data){
-           // $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
-           var handId = '#hand'+data['seat'];
-           var handData = data['hand'];
-           // console.log(handData);
-           var totalId = 'total'+data['seat'];
-           var handTotal = 0;
-           var aces = 0;
-           $(handId).html("");
-           if(data['hand'] === 'empty') return;
-           Object.keys(handData).forEach(function(k){
-               if(handData[k] === 11) aces ++;
-               //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
-               console.log("/static/pictures/cards/"+k+".png");
-               $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
-               handTotal += handData[k];
-           });
-           // if(handId === '#hand7') return; // Dealer logic happens on server side .py
-           if(handTotal > 21 && aces > 0){ //Switch ace value to 1 if over 21
-               while(handTotal > 21){
-                   handTotal -= 10;
-                   aces --;
-                   if(aces === 0 && handTotal > 21){
-                       document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-                       stand();
-                       return;
-                   }
-               }
-               document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
-           }
-           else if(handTotal > 21){
-               document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-               stand();
-               return;
-           }else if(handTotal == 21){
-               document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
-               stand();
-               return;
-           }else{
-               document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
-           }
+        socket.on('hand_update', function (data) {
+            // $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
+            var handId = '#hand' + data['seat'];
+            var handData = data['hand'];
+            // console.log(handData);
+            var totalId = 'total' + data['seat'];
+            var handTotal = 0;
+            var aces = 0;
+            $(handId).html("");
+            if (data['hand'] === 'empty') return;
+            Object.keys(handData).forEach(function (k) {
+                if (handData[k] === 11) aces++;
+                //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+                console.log("/static/pictures/cards/" + k + ".png");
+                $(handId).append('<img src="/static/pictures/cards/' + k + '.png" width=40 alt=' + k + '/>');
+                handTotal += handData[k];
+            });
+            // if(handId === '#hand7') return; // Dealer logic happens on server side .py
+            if (handTotal > 21 && aces > 0) { //Switch ace value to 1 if over 21
+                while (handTotal > 21) {
+                    handTotal -= 10;
+                    aces--;
+                    if (aces === 0 && handTotal > 21) {
+                        document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
+                        stand();
+                        return;
+                    }
+                }
+                document.getElementById(totalId).innerHTML = 'Total: ' + handTotal;
+            }
+            else if (handTotal > 21) {
+                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
+                stand();
+                return;
+            } else if (handTotal == 21) {
+                document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
+                stand();
+                return;
+            } else {
+                document.getElementById(totalId).innerHTML = 'Total: ' + handTotal;
+            }
         });
 
-        socket.on('state_changed', function(state) {
+        socket.on('state_changed', function (state) {
             console.log("Player " + state + "'s turn");
             console.log("State var type = " + state.type);
             state_change(state);
         });
 
-        socket.on('bet_update', function(data){
-           var betId = '#bet'+data['seat'];
-           $(betId).html('Bet: $'+ data['bet']);
+        socket.on('bet_update', function (data) {
+            var betId = '#bet' + data['seat'];
+            $(betId).html('Bet: $' + data['bet']);
         });
 
         socket.on('balance_update', function (data) {
-           var balanceId = '#balance'+data['seat'];
-           $(balanceId).html('$'+data['balance']);
+            var balanceId = '#balance' + data['seat'];
+            $(balanceId).html('$' + data['balance']);
         });
 
-        socket.on('trigger_betting_timer', function(end){
+        socket.on('trigger_betting_timer', function (end) {
             beginBettingTimer(end);
             enableBettingUI();
-            console.log("trigger bet timer"+end);
+            console.log("trigger bet timer" + end);
         });
         {#END SOCKET FUNCTIONS#}
 
-        function get_hand(){
+        function get_hand() {
             socket.emit('get_hand', '{{ table_id }}');
         }
+
         function hit() {
-            socket.emit('hit','{{ table_id }}');
+            socket.emit('hit', '{{ table_id }}');
         }
+
          function doubleDown() {
             hit()
             socket.emit('double_down','{{ table_id }}');
@@ -136,20 +139,28 @@
         function endBetting(){
             socket.emit('end_betting', '{{ table_id }}');
         }
-        function placeBet(){
-           var bet = document.getElementById('inputBet').value;
-           var data = {"bet": bet, "table_id": '{{ table_id }}'};
-           socket.emit('place_bet', data);
+
+        function placeBet() {
+            var bet = document.getElementById('inputBet').value;
+            var data = {"bet": bet, "table_id": '{{ table_id }}'};
+            socket.emit('place_bet', data);
             $('#bet{{ seat_id }}').html("Bet: $" + bet);
-           disableBettingUI();
+            disableBettingUI();
         }
-        function stand(){
+
+        function doubleDown() {
+            socket.emit('doubleBet', '{{ table_id }}');
+            hit();
+            stand();
+        }
+
+        function stand() {
             disableTurnUI();
             data = {"seat": {{seat_id}}, "table_id": '{{ table_id }}'};
             socket.emit('pass_turn', data);
         }
 
-        function update_player_UI(data, id){
+        function update_player_UI(data, id) {
             console.log("id: " + id);
             var nameData = {"seat": id, "name": data['name']};
             var balanceData = {"seat": id, "balance": data['balance']};
@@ -158,100 +169,100 @@
             seat_changed(nameData);
             balance_update(balanceData);
             bet_update(betData);
-            if(data['hand'] == "empty"){
+            if (data['hand'] == "empty") {
                 return;
-            }else{
+            } else {
                 hand_update(handData);
             }
         }
 
         function seat_changed(msg) {
-            $('div#log').append('<p>Seat_Changed: ' + msg['seat'] +' ' + msg['name'] + '</p>');
-            var nameId = 'name'+msg['seat'];
+            $('div#log').append('<p>Seat_Changed: ' + msg['seat'] + ' ' + msg['name'] + '</p>');
+            var nameId = 'name' + msg['seat'];
             document.getElementById(nameId).innerHTML = msg['name'];
         }
 
-        function hand_update(data){
-           $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
-           var handId = '#hand'+data['seat'];
-           var handData = data['hand'];
-           console.log(handData);
-           var totalId = 'total'+data['seat'];
-           var handTotal = 0;
-           $(handId).html("");
-           if(data['hand'] == 'empty') return;
-           Object.keys(handData).forEach(function(k){
-               //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
-               $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
-               handTotal += handData[k];
-           });
+        function hand_update(data) {
+            $('div#log').append('<p>Hand_Update: ' + data['seat'] + ' ' + data['hand'] + '</p>');
+            var handId = '#hand' + data['seat'];
+            var handData = data['hand'];
+            console.log(handData);
+            var totalId = 'total' + data['seat'];
+            var handTotal = 0;
+            $(handId).html("");
+            if (data['hand'] == 'empty') return;
+            Object.keys(handData).forEach(function (k) {
+                //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
+                $(handId).append('<img src="/static/pictures/cards/' + k + '.png" width=40 alt=' + k + '/>');
+                handTotal += handData[k];
+            });
 
             document.getElementById(totalId).innerHTML = handTotal;
         }
 
-        function bet_update(data){
-           var betId = '#bet'+data['seat'];
-           $(betId).html('Bet: $'+ data['bet']);
+        function bet_update(data) {
+            var betId = '#bet' + data['seat'];
+            $(betId).html('Bet: $' + data['bet']);
         }
 
-        function balance_update(data){
-           var balanceId = '#balance'+data['seat'];
-           $(balanceId).html('$'+data['balance']);
+        function balance_update(data) {
+            var balanceId = '#balance' + data['seat'];
+            $(balanceId).html('$' + data['balance']);
         }
 
-    function state_change(state){
-        switch (state) {
-            case -2:    //table empty -> begin betting
-                console.log('Pay out round!');
-                socket.emit('check_win', '{{ table_id }}');
-                break;
-            case -1:    //Betting round
-                socket.emit('verify_game_state', '{{ table_id }}');
-                break;
-            case 7:     //Dealer's turn
-                console.log("Dealer's Turn");
-                break;
-            default:   //any players turn
-                if(state === {{ seat_id }}) enableTurnUI();
-                // TODO: Highlight the player's div if it's their turn
-                // TODO: un-highlight same div once player passes turn | handle for leaving game during turn
-                break;
+        function state_change(state) {
+            switch (state) {
+                case -2:    //table empty -> begin betting
+                    console.log('Pay out round!');
+                    socket.emit('check_win', '{{ table_id }}');
+                    break;
+                case -1:    //Betting round
+                    socket.emit('verify_game_state', '{{ table_id }}');
+                    break;
+                case 7:     //Dealer's turn
+                    console.log("Dealer's Turn");
+                    break;
+                default:   //any players turn
+                    if (state === {{ seat_id }}) enableTurnUI();
+                    // TODO: Highlight the player's div if it's their turn
+                    // TODO: un-highlight same div once player passes turn | handle for leaving game during turn
+                    break;
+            }
+
+            // TODO: Add on window closed functions
+            // TODO: If the current state == players_seatID then pass turn
+            // TODO: make call to socket.emit('leave_table')
         }
 
-        // TODO: Add on window closed functions
-        // TODO: If the current state == players_seatID then pass turn
-        // TODO: make call to socket.emit('leave_table')
-    }
-
-    function beginBettingTimer(end){
-        var x = setInterval(function () {
-            var now = new Date().getTime();
-            var clearedDealersHand = false;
-            var distance = end - now;
-            if(distance < 0){
-                $('#timer').html('');
-                socket.emit('deal_cards', '{{ table_id }}');
-                disableBettingUI();
-                clearInterval(x);
-            }
-            var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
-            if(seconds < 25 && !clearedDealersHand){
-                $('#hand7').html('');
-                $('#total7').html('Total: 0');
-                clearedDealersHand = true;
-                clearCards();
-            }
-            if(seconds > 1){
-                $('#timer').html(seconds +'   !Place your Bets!   '+ seconds);
-            }else{
-                $('#timer').html('!Good Luck!');
-            }
-        }, 1000);
-    }
+        function beginBettingTimer(end) {
+            var x = setInterval(function () {
+                var now = new Date().getTime();
+                var clearedDealersHand = false;
+                var distance = end - now;
+                if (distance < 0) {
+                    $('#timer').html('');
+                    socket.emit('deal_cards', '{{ table_id }}');
+                    disableBettingUI();
+                    clearInterval(x);
+                }
+                var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
+                if (seconds < 25 && !clearedDealersHand) {
+                    $('#hand7').html('');
+                    $('#total7').html('Total: 0');
+                    clearedDealersHand = true;
+                    clearCards();
+                }
+                if (seconds > 1) {
+                    $('#timer').html(seconds + '   !Place your Bets!   ' + seconds);
+                } else {
+                    $('#timer').html('!Good Luck!');
+                }
+            }, 1000);
+        }
 
 
-    function clearCards(){
-            for(var i = 1; i < 8; i++){
+        function clearCards() {
+            for (var i = 1; i < 8; i++) {
                 var handId = '#hand' + i;
                 var totalId = '#total' + i;
                 $(handId).html('');
@@ -259,25 +270,22 @@
             }
         }
 
-    function enableBettingUI(){
-        $('div#betting_UI').show();
-    }
+        function enableBettingUI() {
+            $('div#betting_UI').show();
+        }
 
-    function disableBettingUI(){
-        $('div#betting_UI').hide();
-    }
+        function disableBettingUI() {
+            $('div#betting_UI').hide();
+        }
 
-    function enableTurnUI(){
-        $('div#turn_UI').show();
-    }
+        function enableTurnUI() {
+            $('div#turn_UI').show();
+        }
 
-    function disableTurnUI() {
-        $('div#turn_UI').hide();
-    }
-
-  });
-
-
+        function disableTurnUI() {
+            $('div#turn_UI').hide();
+        }
+    });
 
     </script>
 <body>
@@ -312,7 +320,11 @@
                 {% if (i == seat_id) %}
                     <div id="turn_UI">
 {#                         <a id="get_hand">Get Hand</a> | #}
+<<<<<<< HEAD
                         <a id="hit">Hit</a> | <a id="stand" >Stand</a>| <a id="doubleDown" >doubleDown</a>
+=======
+                       <a id="hit">Hit</a> | <a id="stand" >Stand</a>| <a id="doubleDown">DoubleDown</a>
+>>>>>>> 152230eff5e0d7cd0b9864efc07563e18042b985
                     </div>
                     <div id="betting_UI">
                         [min: 20 max: 2000] <br><label>

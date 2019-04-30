@@ -427,6 +427,11 @@ def check_win(table_id):
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
         socketio.emit('info', info, broadcast=False)
+    elif user_hand_value > 21:
+        payout(0)
+        info = "You lost $" + str(user_data['bet']) + ".... Sad"
+        socketio.emit('info', info, broadcast=False)
+
     else:
         payout(0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"

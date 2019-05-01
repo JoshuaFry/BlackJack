@@ -352,6 +352,7 @@ def write_hand_to_database(table_id):
 @socketio.on('begin_betting')
 def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
+    db.child("tables").child(data['table_id']).child("state").set(-9)
     db.child("tables").child(data['table_id']).child("state").set(-1)
     # socketio.emit('trigger_betting_timer', data['end_bet_by'],  room=table_id)
 
@@ -361,6 +362,7 @@ def dealer_begin_betting_round(table_id):
     end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
     print("No players ready")
     db.child("tables").child(table_id).child("endBettingBy").set(end)
+    db.child("tables").child(data['table_id']).child("state").set(-9)
     db.child("tables").child(table_id).child("state").set(-1)
 
 

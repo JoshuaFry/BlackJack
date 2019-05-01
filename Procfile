@@ -1,1 +1,1 @@
-web: gunicorn --worker-class eventlet -w 1 BlackJack:app
+web: gunicorn -k flask_sockets.worker -w 1 BlackJack:app

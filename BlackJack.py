@@ -363,7 +363,7 @@ def dealer_begin_betting_round(table_id):
     db.child("tables").child(table_id).child("endBettingBy").set(end)
     db.child("tables").child(table_id).child("state").set(-9)
     db.child("tables").child(table_id).child("state").set(-1)
-
+    #test 12
 
 @socketio.on('verify_game_state')
 def verify_game_state(table_id):

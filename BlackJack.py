@@ -5,6 +5,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time
 from flask_socketio import SocketIO, join_room, leave_room
+
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
 config = {
@@ -570,4 +571,4 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.run(app, message_queue='redis://h:p8f136eb20e85ec42498d28fda6bc3e8d1f8b87e67ff5ddfab87f591680f62b62@ec2-3-208-102-144.compute-1.amazonaws.com:25079')
+    socketio.run(app) # , message_queue='redis://h:p8f136eb20e85ec42498d28fda6bc3e8d1f8b87e67ff5ddfab87f591680f62b62@ec2-3-208-102-144.compute-1.amazonaws.com:25079')

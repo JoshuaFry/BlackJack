@@ -21,8 +21,7 @@ db = firebase.database()
 stream = None
 app = Flask(__name__)
 socketio = SocketIO(app)
-#TODO: Finish Everything
-print("Setting Up")
+
 
 def login_required(func):
     @functools.wraps(func)

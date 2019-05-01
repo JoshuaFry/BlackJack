@@ -20,6 +20,7 @@ config = {
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
+stream = None
 app = Flask(__name__)
 socketio = SocketIO(app)
 my_stream = None
@@ -180,7 +181,7 @@ def leave_table(table_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
-    end_data_stream()
+    close_data_stream()
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -195,30 +196,13 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     my_stream = db.child(path).stream(stream_put)
-    # With the below background call I was limited in the amount emit calls
-    # that would make it through in the stream_put function. The data can
-    # change multiple times per second
-    # socketio.start_background_task(db.child(path).stream, stream_put)
-    # socketio.start_background_task(my_stream)
-    # pyrebase.pyrebase.Stream # Stream class now has no auto s
     return
 
 
-def end_data_stream():
+def close_data_stream():
     global my_stream
     my_stream.close()
     return
-
-
-# # Method triggers on json changes - initialized from 'begin_data_stream(path)'
-# def stream_handler(message):
-#     with app.app_context():
-#         if message['event'] == 'patch':
-#             # return stream_patch(message)
-#             return socketio.emit('update_put', message)
-#         else:
-#             return socketio.emit('update_put', message)  # stream_put(message)
-
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
 def stream_put(message):
@@ -230,68 +214,27 @@ def stream_put(message):
             if path[2] == 'name':
                 data = {'seat': path[1], 'name': message['data']}
                 socketio.emit('seat_changed', data, room=table_id, broadcast=True, json=True)
-                # socketio.start_background_task(stream_seat_changed, data)
-                # stream_seat_changed(data)
             elif path[2] == 'bet':
                 data = {'seat': path[1], 'bet': message['data']}
                 socketio.emit('bet_update', data, room=table_id, broadcast=True, json=True)
-                # socketio.start_background_task(stream_bet_update, data)
-                # stream_bet_update(data)
             elif path[2] == 'balance':
                 data = {'seat': path[1], 'balance': message['data']}
                 socketio.emit('balance_update', data, room=table_id, broadcast=True, json=True)
-                # socketio.start_background_task(stream_balance_update, data)
-                # stream_balance_update(data)
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
                 socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
-                # socketio.start_background_task(stream_hand_update, data)
-                # stream_hand_update(data)
-        if path[0] == 'state':
-            # socketio.start_background_task(stream_state_changed, message['data'])
-            # stream_state_changed(message['data'])
-            socketio.emit('state_changed', message['data'], room=table_id)
 
+        if path[0] == 'state':
+            socketio.emit('state_changed', message['data'], room=table_id)
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
             socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
-            # socketio.start_background_task(stream_hand_update, data)
-            # stream_hand_update(data)
-
-
-def stream_seat_changed(data):
-    table_id = get_user_data()['tableId']
-    print("room: " + table_id)
-    socketio.emit('seat_changed', data, room=table_id, broadcast=True, json=True)
-
-def stream_bet_update(data):
-    table_id = get_user_data()['tableId']
-    print("room: " + table_id)
-    socketio.emit('bet_update', data,  room=table_id, broadcast=True,  json=True)
-
-def stream_balance_update(data):
-    table_id = get_user_data()['tableId']
-    print("room: " + table_id)
-    socketio.emit('balance_update', data,  room=table_id, broadcast=True,  json=True)
-
-def stream_hand_update(data):
-    table_id = get_user_data()['tableId']
-    print("room: " + table_id)
-    socketio.emit('hand_update', data,  room=table_id, broadcast=True,  json=True)
-
-def stream_state_changed(data):
-    table_id = get_user_data()['tableId']
-    print("room: " + table_id)
-    socketio.emit('state_changed', data,  room=table_id)
 
 
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
 def get_seat_data(table_id):
     seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
-    seat_names = []
-    print(seat_data)
-    print(seat_names)
     socketio.emit('seat_data_acquired', seat_data,  room=table_id)
 
 
@@ -335,7 +278,7 @@ def hit():
 @socketio.on('hit')
 def write_hand_to_database(table_id):
     seat_id = get_user_data()['seatId']
-    hand = get_current_hand(seat_id,table_id)
+    hand = get_current_hand(seat_id, table_id)
     if len(hand) == 0:
         return
     card = hit()
@@ -355,6 +298,7 @@ def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-9)
     db.child("tables").child(data['table_id']).child("state").set(-1)
+    print("Begin Betting, -1")
 
 
 def dealer_begin_betting_round(table_id):
@@ -364,7 +308,8 @@ def dealer_begin_betting_round(table_id):
     db.child("tables").child(table_id).child("endBettingBy").set(end)
     db.child("tables").child(table_id).child("state").set(-9)
     db.child("tables").child(table_id).child("state").set(-1)
-    #test 12
+    print("Dealer Began Betting, -1")
+
 
 @socketio.on('verify_game_state')
 def verify_game_state(table_id):
@@ -438,8 +383,13 @@ def check_win(table_id):
         push = user_data['bet']
         payout(push)
         info = "Push $" + str(push) + ", it's a tie"
-        socketio.emit('info', info,  room=table_id)
-    elif user_hand_value > dealer_hand_value:
+        socketio.emit('info', info, broadcast=False)
+    elif dealer_hand_value < user_hand_value <= 21:
+        win = user_data['bet'] * 2
+        payout(win)
+        info = "You Won $" + str(win) + "! Keep it up!"
+        socketio.emit('info', info, broadcast=False)
+    elif dealer_hand_value > 21 >= user_hand_value:
         win = user_data['bet'] * 2
         payout(win)
         info = "You Won $" + str(win) + "! Keep it up!"
@@ -468,12 +418,14 @@ def clear_user_hand_and_bet(table_id):
 
 
 def dealers_turn(table_id):
+    print("Its the dealer turn")
     hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     card = hit()
     hand.update(card)
     while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
+        time.sleep(2)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)
@@ -524,7 +476,6 @@ def get_ready_players(table_id):
     ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] > 0:
-            print(seat_data[i])
             ready_players.append(i + 1)
     return ready_players
 
@@ -573,4 +524,4 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.run(app) # , message_queue='redis://h:p8f136eb20e85ec42498d28fda6bc3e8d1f8b87e67ff5ddfab87f591680f62b62@ec2-3-208-102-144.compute-1.amazonaws.com:25079')
+    socketio.run(app)

@@ -75,7 +75,7 @@
            Object.keys(handData).forEach(function(k){
                if(handData[k] === 11) aces ++;
                //$(handId).append('<p>' + k + ': ' + handData[k] + '</p>');
-               console.log("/static/pictures/cards/"+k+".png");
+               //console.log("/static/pictures/cards/"+k+".png");
                $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
                handTotal += handData[k];
            });
@@ -124,7 +124,7 @@
         socket.on('trigger_betting_timer', function(end){
             beginBettingTimer(end);
             enableBettingUI();
-            console.log("trigger bet timer "+end);
+            console.log("trigger bet timer " +end);
         });
         {#END SOCKET FUNCTIONS#}
 
@@ -225,15 +225,18 @@
     }
 
     function beginBettingTimer(end){
+        var clearedDealersHand = false;
+        var finishedRound = false;
         var x = setInterval(function () {
             var now = new Date().getTime();
-            var clearedDealersHand = false;
             var distance = end - now;
-            if(distance < 0){
+            if(distance < 0 && !finishedRound){
+                clearInterval(x);
+                finishedRound = true;
                 $('#timer').html('');
                 socket.emit('deal_cards', '{{ table_id }}');
+                console.log("timer end");
                 disableBettingUI();
-                clearInterval(x);
             }
             var seconds = Math.floor((distance % FORTY_FIVE_SECONDS) / 1000);
             if(seconds < 25 && !clearedDealersHand){

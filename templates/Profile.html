@@ -3,7 +3,6 @@
 <head>
     {% extends "Parent.html" %}
     <meta charset="UTF-8">
-
 </head>
 <body>
 {% block content %}
@@ -11,6 +10,7 @@
     <div class="jumbotron">
     <h3>UserName:  {{ name }}</h3>
     <h3>Funds available:  {{ balance }}</h3>
+
     <form class="form-group" action="{{url_for('update_balance')}}" method="post">
         <div class="input-group">
             <span class="input-group-addon">$</span>
@@ -25,6 +25,26 @@
         </div>
         </div>
     </form>
+
+        {% if admin %}
+
+        <form class="form-group" action="{{url_for('refresh_data_streams')}}" method="post">
+                    <div class="form-group">
+        <div class="col-xs-offset-5 col-xs-9">
+            <input type="submit" class="btn btn-primary" value="Refresh Data Streams">
+            </div>
+            </div>
+        </form>
+
+        <form class="form-group" action="{{url_for('create_all_streams')}}" method="post">
+                    <div class="form-group">
+        <div class="col-xs-offset-5 col-xs-9">
+            <input type="submit" class="btn btn-primary" value="Create All Streams">
+            </div>
+            </div>
+        </form>
+        {% endif %}
+
     </div>
     </div>
 

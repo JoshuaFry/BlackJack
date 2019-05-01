@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+# from gevent import monkey
+# monkey.patch_all()
 import pyrebase
 from flask import Flask, request, render_template
 import uuid, functools, os, random
@@ -20,11 +20,10 @@ config = {
 firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
-stream = None
 app = Flask(__name__)
 socketio = SocketIO(app)
 my_stream = None
-
+all_streams = {}
 
 def login_required(func):
     @functools.wraps(func)
@@ -71,20 +70,47 @@ def update_balance():
     userId = auth.current_user['localId']
     balance = db.child("users").child(userId).child("balance").get().val()  # TODO: Error check
     userData = dict(db.child("users").child(userId).get(auth.current_user['idToken']).val())  # TODO: Error check
-
+    admin = False
+    if 'admin' in userData:
+        admin = True
     if request.form['amount'] == '':
-        return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user())
+        return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user(), admin=admin)
 
     new_balance = int(request.form['amount']) + balance
     db.child("users").child(userId).child("balance").set(new_balance)  # TODO: Error check
-    return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user())
+    return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user(), admin=admin)
 
 
 @app.route('/profile', methods=['GET'])
 @login_required
 def view_profile():
     user_data = get_user_data()
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
+    admin = False
+    if 'admin' in user_data:
+        admin = True
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
+
+
+@app.route('/refresh-data-streams', methods=['POST'])
+@login_required
+def refresh_data_streams():
+    user_data = get_user_data()
+    admin = False
+    if 'admin' in user_data:
+        admin = True
+        refresh_data_streams()
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
+
+
+@app.route('/create-all-streams', methods=['POST'])
+@login_required
+def create_all_streams():
+    create_streams()
+    user_data = get_user_data()
+    admin = False
+    if 'admin' in user_data:
+        admin = True
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
 
 
 @app.route('/signin', methods=['POST'])
@@ -92,13 +118,17 @@ def signin_user():
     email = request.form['email']
     password = request.form['password']
     try:
-        user = auth.sign_in_with_email_and_password(email,password)
+        user = auth.sign_in_with_email_and_password(email, password)
         auth.refresh(user['refreshToken'])
         user_data = get_user_data()
     except:
         message = "invalid credentials"
-        return render_template("Login_Register.html",message=message)
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user())
+        return render_template("Login_Register.html", message=message)
+    admin = False
+    if 'admin' in user_data:
+        admin = True
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(),
+                           admin=admin)
 
 
 @app.route('/logout', methods=['GET'])
@@ -148,7 +178,7 @@ def join_table(table_id):
         return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
     write_user_to_seat(table_id, seat_id)
-    begin_data_stream("tables/" + table_id)
+    # begin_data_stream("tables/" + table_id)  #TODO: Refresh Stream When First User Joins a table
     return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data()['userName'], user=is_user())
 
 
@@ -181,7 +211,7 @@ def leave_table(table_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
-    close_data_stream()
+    # close_data_stream("tables/" + table_id)
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
 
 
@@ -195,14 +225,29 @@ def is_user():
 # Stream json changes from Firebase Real-Time DB path
 def begin_data_stream(path):
     global my_stream
+    global all_streams
+    if path in all_streams:
+        close_data_stream(path)
+
     my_stream = db.child(path).stream(stream_put)
+    stream = {path: my_stream}
+    all_streams.update(stream)
     return
 
 
-def close_data_stream():
+def close_data_stream(path):
     global my_stream
+    global all_streams
+    my_stream = all_streams[path]
     my_stream.close()
     return
+
+
+def refresh_data_streams():
+    global all_streams
+    for k,v in all_streams:
+        begin_data_stream(k)
+
 
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
 def stream_put(message):
@@ -521,6 +566,12 @@ def create_all_tables():
                         5: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
                         6: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0}, }}}
         db.child("tables").update(data)
+
+
+def create_streams():
+    table_data = dict(db.child("tables/").get().val())
+    for table in table_data:
+        begin_data_stream("tables/" + table)
 
 
 if __name__ == '__main__':

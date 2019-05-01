@@ -334,7 +334,6 @@ def begin_betting(data):
     db.child("tables").child(data['table_id']).child("endBettingBy").set(data['end_bet_by'])
     db.child("tables").child(data['table_id']).child("state").set(-9)
     db.child("tables").child(data['table_id']).child("state").set(-1)
-    # socketio.emit('trigger_betting_timer', data['end_bet_by'], broadcast=False)
     print("Begin Betting, -1")
 
 
@@ -532,6 +531,6 @@ def create_all_tables():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app)
 
 

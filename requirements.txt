@@ -2,7 +2,10 @@ Click==7.0
 Flask==1.0.2
 Flask-SocketIO==3.3.2
 gcloud==0.17.0
+gevent==1.4.0
+gevent-websocket==0.10.1
 googleapis-common-protos==1.5.10
+greenlet==0.4.15
 gunicorn==19.9.0
 httplib2==0.12.3
 itsdangerous==1.1.0

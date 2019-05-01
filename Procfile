@@ -1,1 +1,1 @@
-web: gunicorn -k flask_socketio.worker -w 1 BlackJack:app
+web: gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 BlackJack:app

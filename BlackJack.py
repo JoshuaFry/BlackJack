@@ -205,6 +205,7 @@ def begin_data_stream(path):
 
 
 def end_data_stream():
+    global my_stream
     my_stream.close()
     return
 

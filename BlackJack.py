@@ -1,5 +1,5 @@
-# from gevent import monkey
-# monkey.patch_all()
+from gevent import monkey
+monkey.patch_all()
 import pyrebase
 from flask import Flask, request, render_template
 import uuid, functools, os, random

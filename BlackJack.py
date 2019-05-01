@@ -1,8 +1,10 @@
+import pyrebase
+from gevent import monkey
+monkey.patch_all()
 from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time
 from flask_socketio import SocketIO, join_room, leave_room
-import pyrebase
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
 config = {

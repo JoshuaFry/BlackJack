@@ -319,7 +319,7 @@ def get_seat_data(data):
     i = data['auth']
     table_id = data['table_id']
     seat_data = db.child("tables").child(table_id).child("seats").get(auth[int(i)].current_user['idToken']).val()[1:]
-    socketio.emit('seat_data_acquired', seat_data,  room=table_id)
+    socketio.emit('seat_data_acquired', seat_data,  room=table_id, broadcast=False)
 
 
 @socketio.on('update_balance')
@@ -406,10 +406,10 @@ def verify_game_state(table_id):
     state = db.child("tables").child(table_id).child("state").get().val()
     if state == -1:
         end = db.child("tables").child(table_id).child("endBettingBy").get().val()
-        socketio.emit('trigger_betting_timer', end,  room=table_id)
+        socketio.emit('trigger_betting_timer', end,  room=table_id, broadcast=False)
         print("trigger_betting_timer")
     else:
-        socketio.emit('state_changed', state,  room=table_id)
+        socketio.emit('state_changed', state,  room=table_id, broadcast=False)
 
 
 @socketio.on('place_bet')
@@ -469,28 +469,28 @@ def check_win(data):
         win = user_data['bet'] * 3
         payout(i, win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
-        socketio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,  room=table_id, broadcast=False)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['bet']
         payout(i, push)
         info = "Push $" + str(push) + ", it's a tie"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info,   room=table_id, broadcast=False)
     elif dealer_hand_value < user_hand_value <= 21:
         win = user_data['bet'] * 2
         payout(i, win)
         info = "You Won $" + str(win) + "! Keep it up!"
-        socketio.emit('info', info, broadcast=False)
+        socketio.emit('info', info,   room=table_id, broadcast=False)
     elif dealer_hand_value > 21 >= user_hand_value:
         win = user_data['bet'] * 2
         payout(i, win)
         info = "You Won $" + str(win) + "! Keep it up!"
-        socketio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,   room=table_id, broadcast=False)
     else:
         payout(i, 0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
-        socketio.emit('info', info,  room=table_id)
+        socketio.emit('info', info,    room=table_id, broadcast=False)
     clear_user_hand_and_bet(i, table_id)
 
 

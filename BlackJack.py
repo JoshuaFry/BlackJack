@@ -36,7 +36,7 @@ def login_required(func):
 
 @app.route('/')
 def home():
-    # create_all_tables()
+    #create_all_tables()
     return render_template("index.html", title="Homepage", user=is_user())
 
 
@@ -358,17 +358,27 @@ def verify_game_state(table_id):
 @socketio.on('place_bet')
 def place_bet(data):
     bet = int(data['bet'])
-    table_id = data['table_id']
-    user_data = get_user_data()
-    balance = user_data['balance']
-    seat_id = user_data['seatId']
-    userId = auth.current_user['localId']
-    balance -= bet
-    db.child("users").child(userId).child("bet").set(bet)
-    db.child("users").child(userId).child("balance").set(balance)
-    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
-    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
-    print(data)
+    if 20 <= bet <= 2000:
+        table_id = data['table_id']
+        user_data = get_user_data()
+        balance = user_data['balance']
+        seat_id = user_data['seatId']
+        userId = auth.current_user['localId']
+        balance -= bet
+        db.child("users").child(userId).child("bet").set(bet)
+        db.child("users").child(userId).child("balance").set(balance)
+        db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(bet)
+        db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
+        print(data)
+    else:
+        info = "[min bet: 20 max bet: 2000]"
+        socketio.emit('info', info, broadcast=False)
+
+
+
+
+
+
 
 
 @socketio.on('pass_turn')
@@ -456,6 +466,7 @@ def clear_user_hand_and_bet(table_id):
 
 
 def dealers_turn(table_id):
+    print("its the dealers turn")
     hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     card = hit()
     hand.update(card)
@@ -508,8 +519,8 @@ def get_ready_players(table_id):
     ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] > 0:
-            print(seat_data[i])
             ready_players.append(i + 1)
+    print(ready_players)
     return ready_players
 
 

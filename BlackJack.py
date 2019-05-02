@@ -306,7 +306,6 @@ def stream_put(message):
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
                 socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
-
         if path[0] == 'state':
             socketio.emit('state_changed', message['data'], room=table_id)
         if path[0] == 'dealer':

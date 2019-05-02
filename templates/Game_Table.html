@@ -228,7 +228,6 @@
         var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         var clearedDealersHand = false;
         var finishedRound = false;
-        if(document.getElementById('timer').innerText !== '') return;
         var x = setInterval(function () {
             var now = new Date().getTime();
             var distance = end - now;

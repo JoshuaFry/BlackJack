@@ -34,8 +34,6 @@ def login_required(func):
         for k, v in kwargs.items():
             if k == "i":
                 i = int(v)
-                print(i)
-            print(k,v)
         if i is None:
             print("login_required: No User Found")
             return render_template("Login_Register.html", title="Homepage", user=is_user(i))

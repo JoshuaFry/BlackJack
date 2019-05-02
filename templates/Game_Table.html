@@ -140,9 +140,12 @@
         function placeBet(){
            var bet = document.getElementById('inputBet').value;
            var data = {"bet": bet, "table_id": '{{ table_id }}', "auth":{{auth}}};
-           socket.emit('place_bet', data);
-            $('#bet{{ seat_id }}').html("Bet: $" + bet);
-           disableBettingUI();
+           if(19 < bet){
+               if(bet > 2000) bet = 2000;
+               socket.emit('place_bet', data);
+                $('#bet{{ seat_id }}').html("Bet: $" + bet);
+                disableBettingUI();
+           }
         }
         function stand(){
             disableTurnUI();
@@ -283,7 +286,10 @@
 
   });
 
-
+    window.onbeforeunload = function(){
+        myfun();
+        return 'Are you sure you want to leave?';
+    };
 
     </script>
 <body>

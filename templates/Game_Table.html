@@ -203,10 +203,10 @@
     function state_change(state){
         var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         switch (state) {
-            {#case -2:    //table empty -> begin betting#}
-            {#    console.log('Pay out round!');#}
-            {#    socket.emit('check_win', data);#}
-            {#    break;#}
+            case -2:    //table empty -> begin betting
+                console.log('Pay out round!');
+                socket.emit('check_win', data);
+                break;
             case -1:    //Betting round
                 socket.emit('verify_game_state', '{{ table_id }}');
                 break;

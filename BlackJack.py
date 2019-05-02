@@ -394,7 +394,6 @@ def begin_betting(data):
 def dealer_begin_betting_round(table_id):
     FORTY_FIVE_SECONDS = (1000 * 45)
     end = int(round(time.time() * 1000)) + FORTY_FIVE_SECONDS
-    print("No players ready")
     db.child("tables").child(table_id).child("endBettingBy").set(end)
     db.child("tables").child(table_id).child("state").set(-9)
     db.child("tables").child(table_id).child("state").set(-1)
@@ -441,12 +440,15 @@ def pass_turn(data):
     if next_turn == 7:
         print("Dealer's Turn")
         dealers_turn(data['table_id'])
+    elif next_turn == 0:
+        print("no players found")
+        dealers_turn(data['table_id'])
     else:
         db.child("tables").child(data['table_id']).child("state").set(next_turn)
 
 
 def get_next_turn(ready_players, current):
-    next_turn = -2
+    next_turn = 0
     for i in range(len(ready_players)):
         if ready_players[i] == current:
             if i + 1 == len(ready_players):
@@ -518,6 +520,7 @@ def dealers_turn(table_id):
     while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
+        time.sleep(2)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)
@@ -568,6 +571,7 @@ def deal_cards(data):
 # Any player with a bet greater than 0
 def get_ready_players(table_id):
     seat_data = db.child("tables").child(table_id).child("seats").get().val()[1:]
+    time.sleep(2)
     ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] > 0:

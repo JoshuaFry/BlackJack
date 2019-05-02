@@ -71,8 +71,7 @@ def update_balance():
 
     if request.form['amount'] == '':
         return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user())
-
-    new_balance = int(request.form['amount']) + balance
+    new_balance = int(request.form['amount'])+balance
     db.child("users").child(userId).child("balance").set(new_balance)  # TODO: Error check
     return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user())
 

@@ -10,7 +10,8 @@
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
 
-    $(document).ready(function() {
+    $(document).ready
+    (function() {
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
@@ -137,11 +138,14 @@
         }
 
         function placeBet() {
-            var bet = document.getElementById('inputBet').value;
-            var data = {"bet": bet, "table_id": '{{ table_id }}'};
-            socket.emit('place_bet', data);
+            var bet =parseInt(document.getElementById('inputBet').value);
             $('#bet{{ seat_id }}').html("Bet: $" + bet);
-            disableBettingUI();
+            if(19<bet){
+                if (bet>2000)bet=2000;
+                var data = {"bet": bet, "table_id": '{{ table_id }}'};
+                socket.emit('place_bet', data);
+                disableBettingUI();
+            }
         }
 
         function doubleDown() {
@@ -255,7 +259,6 @@
                 }
             }, 1000);
         }
-        function
 
 
         function clearCards() {

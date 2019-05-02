@@ -118,7 +118,7 @@ def refresh_data_streams(i):
     if 'admin' in user_data:
         admin = True
         refresh_data_streams()
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin, auth=i)
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(i), admin=admin, auth=i)
 
 
 @app.route('/create-all-streams/<i>', methods=['POST'])

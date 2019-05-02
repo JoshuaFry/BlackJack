@@ -15,8 +15,6 @@
         var FORTY_FIVE_SECONDS = (1000 * 45);
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port)//, {transports: ['websocket']});
 
-        var _data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
-        socket.emit('join', _data);
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
         socket.emit('get_seat_data', _data);
@@ -51,6 +49,8 @@
                 console.log('verifying_game_state');
                 socket.emit('verify_game_state', '{{ table_id }}');
             }
+            var _data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
+            socket.emit('join', _data);
         });
         socket.on('info', function (info) {
            $('#info').html(info);

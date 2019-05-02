@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+# from gevent import monkey
+# monkey.patch_all()
 import pyrebase
 from flask import Flask, request, render_template
 import uuid, functools, os, random
@@ -34,6 +34,8 @@ def login_required(func):
         for k, v in kwargs.items():
             if k == "i":
                 i = int(v)
+                print(i)
+            print(k,v)
         if i is None:
             print("login_required: No User Found")
             return render_template("Login_Register.html", title="Homepage", user=is_user(i))
@@ -54,6 +56,7 @@ def get_empty_client_index():
 
 @app.route('/', methods=['GET'])
 def home():
+
     return render_template("index.html", title="Homepage", user=False)
 
 
@@ -176,7 +179,7 @@ def get_user_data(i):
 
 
 def get_tables():
-    table_data = dict(db.child("tables/").get().val())  # TODO: Error Check
+    table_data = dict(db.child("tables/").get().val())
     for table in table_data.values():
         available_seats = 0
         for seat in table['seats'][1:]:
@@ -186,7 +189,7 @@ def get_tables():
     return table_data
 
 
-@app.route('/join_table/<table_id>/<i>', methods=['GET', 'POST'])
+@app.route('/join_table/<i>/<table_id>', methods=['GET', 'POST'])
 @login_required
 def join_table(i, table_id):
     seat_id = get_available_seatid(table_id)
@@ -199,8 +202,8 @@ def join_table(i, table_id):
     return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data(i)['userName'], user=is_user(i), auth=i)
 
 
-@login_required  # TODO: Error check
 def write_user_to_seat(i, table_id, seat_id):
+    print("writing user to seat")
     userId = auth[int(i)].current_user['localId']
     user_data = get_user_data(i)
     userName = user_data['userName']
@@ -268,7 +271,7 @@ def close_data_stream(path):
 
 def refresh_data_streams():
     global all_streams
-    for k,v in all_streams:
+    for k, v in all_streams.items():
         begin_data_stream(k)
 
 
@@ -549,10 +552,11 @@ def deal_cards(data):
     non_ready_players = get_non_ready_players(table_id)
     seatId = get_user_data(i)['seatId']
     if len(ready_players) == 0:
-        if non_ready_players[0] == seatId:
-            print("No players Ready")
-            dealer_begin_betting_round(table_id)
-        return
+        if len(non_ready_players) > 0:
+            if non_ready_players[0] == seatId:
+                print("No players Ready")
+                dealer_begin_betting_round(table_id)
+            return
     if get_user_data(i)['bet'] > 0:
         hand = first_hand()
         db.child("tables").child(table_id).child("seats").child(seatId).child("hand").set(hand)

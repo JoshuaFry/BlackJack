@@ -306,6 +306,7 @@ def stream_put(message):
                 data = {'seat': path[1], 'hand': message['data']}
                 socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
         if path[0] == 'state':
+
             socketio.emit('state_changed', message['data'], room=table_id)
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
@@ -517,7 +518,6 @@ def dealers_turn(table_id):
     while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
-        time.sleep(2)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)
@@ -600,7 +600,7 @@ def on_join(data):
 def on_leave(data):
     i = data['auth']
     table_id = data['table_id']
-    username = get_user_data()['userName']
+    username = get_user_data(i)['userName']
     leave_room(table_id)
     print(username + ' has left the room. ' + table_id)
 

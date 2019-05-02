@@ -49,11 +49,11 @@
             <ul class="nav navbar-nav">
                 <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
                 {% if user %}
-                    <li><a href="/profile"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
-                    <li><a href="/find_game"><span class="glyphicon glyphicon-list-alt"></span> Find Game</a></li>
-                    <li><form action="/logout"><input id="logout" type="submit" value="   Logout."></form></li>
+                    <li><a href="{{ url_for('view_profile', i=auth) }}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                    <li><a href="{{ url_for('find_game', i=auth)}}"><span class="glyphicon glyphicon-list-alt"></span> Find Game</a></li>
+                    <li><form action="{{ url_for('logout_user', i=auth)}}"><input id="logout" type="submit" value="   Logout."></form></li>
                     {% else %}
-                    <li><a href="/login_register"><span class="glyphicon glyphicon-user"></span> Login</a></li>
+                    <li><a href="{{ url_for('login_register') }}"><span class="glyphicon glyphicon-user"></span> Login</a></li>
                 {% endif %}
             </ul>
         </div>

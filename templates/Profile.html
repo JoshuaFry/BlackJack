@@ -11,7 +11,7 @@
     <h3>UserName:  {{ name }}</h3>
     <h3>Funds available:  {{ balance }}</h3>
 
-    <form class="form-group" action="{{url_for('update_balance')}}" method="post">
+    <form class="form-group" action="{{url_for('update_balance', i=auth)}}" method="post">
         <div class="input-group">
             <span class="input-group-addon">$</span>
             <input type="number" class="form-control" placeholder="Add Funds" name="amount">
@@ -28,7 +28,7 @@
 
         {% if admin %}
 
-        <form class="form-group" action="{{url_for('refresh_data_streams')}}" method="post">
+        <form class="form-group" action="{{url_for('refresh_data_streams', i=auth)}}" method="post">
                     <div class="form-group">
         <div class="col-xs-offset-5 col-xs-9">
             <input type="submit" class="btn btn-primary" value="Refresh Data Streams">
@@ -36,7 +36,7 @@
             </div>
         </form>
 
-        <form class="form-group" action="{{url_for('create_all_streams')}}" method="post">
+        <form class="form-group" action="{{url_for('create_all_streams', i=auth)}}" method="post">
                     <div class="form-group">
         <div class="col-xs-offset-5 col-xs-9">
             <input type="submit" class="btn btn-primary" value="Create All Streams">

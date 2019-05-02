@@ -5,6 +5,7 @@ from flask import Flask, request, render_template
 import uuid, functools, os, random
 import time
 from flask_socketio import SocketIO, join_room, leave_room
+import threading
 
 src = "https://www.gstatic.com/firebasejs/5.8.3/firebase.js"
 
@@ -18,127 +19,143 @@ config = {
 }
 
 firebase = pyrebase.initialize_app(config)
-auth = firebase.auth()
+auth = [firebase.auth() for i in range(36)]
 db = firebase.database()
 app = Flask(__name__)
 socketio = SocketIO(app)
 my_stream = None
 all_streams = {}
+stream_threads = {}
 
 def login_required(func):
     @functools.wraps(func)
     def verify_login(*args, **kwargs):
-        if auth.current_user is not None:
+        i = None
+        for k, v in kwargs.items():
+            if k == "i":
+                i = int(v)
+        if i is None:
+            print("login_required: No User Found")
+            return render_template("Login_Register.html", title="Homepage", user=is_user(i))
+        if auth[i].current_user is not None:
             return func(*args, **kwargs)
         else:
             print("login_required: No User Found")
-            return render_template("Login_Register.html", title="Homepage", user=is_user())
+            return render_template("Login_Register.html", title="Homepage", user=is_user(i))
     return verify_login
+
+
+def get_empty_client_index():
+    for i in range(len(auth)):
+        if auth[int(i)].current_user is None:
+            return i
+    # TODO: show that the server is full
 
 
 @app.route('/', methods=['GET'])
 def home():
-    # create_all_tables()
-    return render_template("index.html", title="Homepage", user=is_user())
+    return render_template("index.html", title="Homepage", user=False)
 
 
 @app.route('/login_register', methods=['GET', 'POST'])
 def login_register():
-    return render_template("Login_Register.html", title="Login", user=is_user())
+    i = get_empty_client_index()
+    return render_template("Login_Register.html", title="Login", user=is_user(i), auth=i)
 
 
-@app.route('/find_game', methods=['GET', 'POST'])
-def find_game():
-    return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
+@app.route('/find_game/<i>', methods=['GET', 'POST'])
+def find_game(i):
+    return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
 
 
-@app.route('/register', methods=['POST'])
-def register_user():
+@app.route('/register/<i>', methods=['POST'])
+def register_user(i):
     email = request.form['email']
     password = request.form['password']
     userName = request.form['Username']
-    auth.create_user_with_email_and_password(email, password)
-    user = auth.sign_in_with_email_and_password(email, password)
-    auth.refresh(user['refreshToken'])
+    auth[int(i)].create_user_with_email_and_password(email, password)
+    user = auth[int(i)].sign_in_with_email_and_password(email, password)
+    auth[int(i)].refresh(user['refreshToken'])
 
-    return create_base_user_data(userName)
+    return create_base_user_data(i, userName)
 
 
-@app.route('/updateBalance/', methods=['GET', 'POST'])
+@app.route('/updateBalance/<i>', methods=['GET', 'POST'])
 @login_required
-def update_balance():
-    userId = auth.current_user['localId']
+def update_balance(i):
+    userId = auth[int(i)].current_user['localId']
     balance = db.child("users").child(userId).child("balance").get().val()  # TODO: Error check
-    userData = dict(db.child("users").child(userId).get(auth.current_user['idToken']).val())  # TODO: Error check
+    userData = dict(db.child("users").child(userId).get(auth[int(i)].current_user['idToken']).val())  # TODO: Error check
     admin = False
     if 'admin' in userData:
         admin = True
     if request.form['amount'] == '':
-        return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user(), admin=admin)
+        return render_template("Profile.html", name=userData['userName'], balance=balance, user=is_user(i), admin=admin, auth=i)
 
     new_balance = int(request.form['amount']) + balance
     db.child("users").child(userId).child("balance").set(new_balance)  # TODO: Error check
-    return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user(), admin=admin)
+    return render_template("Profile.html", name=userData['userName'], balance=new_balance, user=is_user(i), admin=admin, auth=i)
 
 
-@app.route('/profile', methods=['GET'])
+@app.route('/profile/<i>', methods=['GET'])
 @login_required
-def view_profile():
-    user_data = get_user_data()
+def view_profile(i):
+    user_data = get_user_data(i)
     admin = False
     if 'admin' in user_data:
         admin = True
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(i), admin=admin, auth=i)
 
 
-@app.route('/refresh-data-streams', methods=['POST'])
+@app.route('/refresh-data-streams/<i>', methods=['POST'])
 @login_required
-def refresh_data_streams():
-    user_data = get_user_data()
+def refresh_data_streams(i):
+    user_data = get_user_data(i)
     admin = False
     if 'admin' in user_data:
         admin = True
         refresh_data_streams()
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin, auth=i)
 
 
-@app.route('/create-all-streams', methods=['POST'])
+@app.route('/create-all-streams/<i>', methods=['POST'])
 @login_required
-def create_all_streams():
+def create_all_streams(i):
     create_streams()
-    user_data = get_user_data()
+    user_data = get_user_data(i)
     admin = False
     if 'admin' in user_data:
         admin = True
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(), admin=admin)
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(i), admin=admin, auth=i)
 
 
 @app.route('/signin', methods=['POST'])
 def signin_user():
     email = request.form['email']
     password = request.form['password']
+    i = get_empty_client_index()
     try:
-        user = auth.sign_in_with_email_and_password(email, password)
-        auth.refresh(user['refreshToken'])
-        user_data = get_user_data()
+        user = auth[int(i)].sign_in_with_email_and_password(email, password)
+        auth[int(i)].refresh(user['refreshToken'])
+        user_data = get_user_data(i)
     except:
         message = "invalid credentials"
         return render_template("Login_Register.html", message=message)
     admin = False
     if 'admin' in user_data:
         admin = True
-    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(),
-                           admin=admin)
+    return render_template("Profile.html", name=user_data['userName'], balance=user_data['balance'], user=is_user(i),
+                           admin=admin, auth=i)
 
 
-@app.route('/logout', methods=['GET'])
-def logout_user():
-    auth.current_user = None
+@app.route('/logout/<i>', methods=['GET'])
+def logout_user(i):
+    auth[int(i)].current_user = None
     return render_template("index.html")
 
 
-def create_base_user_data(userName):
-    user = auth.current_user
+def create_base_user_data(i, userName):
+    user = auth[int(i)].current_user
 
     data = {
         "userName": userName,
@@ -149,12 +166,12 @@ def create_base_user_data(userName):
 
     # TODO: Error check results
     results = db.child("users").child(user['localId']).set(data, user['idToken'])
-    return render_template("Profile.html", name=auth.current_user['displayName'], balance=1000, user=is_user())
+    return render_template("Profile.html", name=auth[int(i)].current_user['displayName'], balance=1000, user=is_user(i), auth=i)
 
 
-def get_user_data():
+def get_user_data(i):
     # TODO: Error check
-    user_data = dict(db.child("users/" + auth.current_user['localId']).get(auth.current_user['idToken']).val())
+    user_data = dict(db.child("users/" + auth[int(i)].current_user['localId']).get(auth[int(i)].current_user['idToken']).val())
     return user_data
 
 
@@ -169,23 +186,23 @@ def get_tables():
     return table_data
 
 
-@app.route('/join_table/<table_id>', methods=['GET', 'POST'])
+@app.route('/join_table/<table_id>/<i>', methods=['GET', 'POST'])
 @login_required
-def join_table(table_id):
+def join_table(i, table_id):
     seat_id = get_available_seatid(table_id)
     print(seat_id)
     if seat_id == -1:
-        return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
+        return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
 
-    write_user_to_seat(table_id, seat_id)
+    write_user_to_seat(i, table_id, seat_id)
     # begin_data_stream("tables/" + table_id)  #TODO: Refresh Stream When First User Joins a table
-    return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data()['userName'], user=is_user())
+    return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data(i)['userName'], user=is_user(i), auth=i)
 
 
 @login_required  # TODO: Error check
-def write_user_to_seat(table_id, seat_id):
-    userId = auth.current_user['localId']
-    user_data = get_user_data()
+def write_user_to_seat(i, table_id, seat_id):
+    userId = auth[int(i)].current_user['localId']
+    user_data = get_user_data(i)
     userName = user_data['userName']
     balance = user_data['balance']
     db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set(userName)
@@ -203,20 +220,22 @@ def get_available_seatid(table_id):
     return -1
 
 
-@app.route('/leave_table/<table_id>', methods=['GET', 'POST'])
+@app.route('/leave_table/<table_id>/<i>', methods=['GET', 'POST'])
 @login_required
-def leave_table(table_id):
-    seat_id = get_user_data()['seatId']
+def leave_table(i, table_id):
+    seat_id = get_user_data(i)['seatId']
     db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set("empty")
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
     # close_data_stream("tables/" + table_id)
-    return render_template("Game_Search.html", table_data=get_tables(), user=is_user())
+    return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
 
 
-def is_user():
-    if auth.current_user is not None:
+def is_user(i):
+    if i is None:
+        return False
+    if auth[int(i)].current_user is not None:
         return True
     else:
         return False
@@ -226,10 +245,14 @@ def is_user():
 def begin_data_stream(path):
     global my_stream
     global all_streams
+    global stream_threads
     if path in all_streams:
         close_data_stream(path)
 
     my_stream = db.child(path).stream(stream_put)
+    t_id = path.split('/')[1:][0]
+    thread = {t_id: my_stream.thread.name}
+    stream_threads.update(thread)
     stream = {path: my_stream}
     all_streams.update(stream)
     return
@@ -249,9 +272,21 @@ def refresh_data_streams():
         begin_data_stream(k)
 
 
+def get_table_by_thread(thread):
+    global stream_threads
+    print(thread)
+    print
+    for k in stream_threads:
+        if stream_threads[k] == thread:
+            return k
+    print("get_table_by_thread: something went wrong")
+
+
 # Retrieves json changes from Firebase to Game_table page via Flask-SocketIO
 def stream_put(message):
-    table_id = get_user_data()['tableId']
+    # table_id = get_user_data()['tableId']
+    table_id = get_table_by_thread(threading.current_thread().name)
+    print(table_id)
     with app.app_context():
         print(message)
         path = str(message["path"][1:]).split('/')
@@ -278,18 +313,22 @@ def stream_put(message):
 
 # Returns the current seat data for a given table_id in the DB
 @socketio.on('get_seat_data')
-def get_seat_data(table_id):
-    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
+def get_seat_data(data):
+    i = data['auth']
+    table_id = data['table_id']
+    seat_data = db.child("tables").child(table_id).child("seats").get(auth[int(i)].current_user['idToken']).val()[1:]
     socketio.emit('seat_data_acquired', seat_data,  room=table_id)
 
 
 @socketio.on('update_balance')
-def update_user_balance(amt):
-    user_data = get_user_data()
+def update_user_balance(data):
+    i = data['auth']
+    amt = data['amt']
+    user_data = get_user_data(i)
     balance = user_data['balance']
     seat_id = user_data['seatId']
     balance += amt
-    user_id = auth.current_user['localId']
+    user_id = auth[int(i)].current_user['localId']
     db.child("users").child(user_id).child("bet").set(0)
     db.child("users").child(user_id).child("balance").set(balance)
     db.child("tables").child(user_id).child("seats").child(seat_id).child("bet").set(0)
@@ -298,7 +337,7 @@ def update_user_balance(amt):
 
 
 def get_deck():
-    deck = dict(db.child("deck/").get(auth.current_user['idToken']).val())
+    deck = dict(db.child("deck/").get().val())
     return deck
 
 
@@ -321,8 +360,10 @@ def hit():
 
 
 @socketio.on('hit')
-def write_hand_to_database(table_id):
-    seat_id = get_user_data()['seatId']
+def write_hand_to_database(data):
+    i = data['auth']
+    table_id = data['table_id']
+    seat_id = get_user_data(i)['seatId']
     hand = get_current_hand(seat_id, table_id)
     if len(hand) == 0:
         return
@@ -332,9 +373,11 @@ def write_hand_to_database(table_id):
 
 
 @socketio.on('get_hand')
-def write_hand_to_database(table_id):
+def write_hand_to_database(data):
+    i = data['auth']
+    table_id = data['table_id']
     hand = first_hand()
-    seat_id = get_user_data()['seatId']
+    seat_id = get_user_data(i)['seatId']
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
 
 
@@ -369,12 +412,13 @@ def verify_game_state(table_id):
 
 @socketio.on('place_bet')
 def place_bet(data):
+    i = data['auth']
     bet = int(data['bet'])
     table_id = data['table_id']
-    user_data = get_user_data()
+    user_data = get_user_data(i)
     balance = user_data['balance']
     seat_id = user_data['seatId']
-    userId = auth.current_user['localId']
+    userId = auth[int(i)].current_user['localId']
     balance -= bet
     db.child("users").child(userId).child("bet").set(bet)
     db.child("users").child(userId).child("balance").set(balance)
@@ -411,51 +455,53 @@ def get_next_turn(ready_players, current):
 
 
 @socketio.on('check_win')
-def check_win(table_id):
-    user_data = get_user_data()
+def check_win(data):
+    i = data['auth']
+    table_id = data['table_id']
+    user_data = get_user_data(i)
     hand = get_current_hand(user_data['seatId'], table_id)
     user_hand_value = get_hand_total(hand)
     if user_hand_value is None:
         return
     if user_hand_value == 21:
         win = user_data['bet'] * 3
-        payout(win)
+        payout(i, win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
         socketio.emit('info', info,  room=table_id)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['bet']
-        payout(push)
+        payout(i, push)
         info = "Push $" + str(push) + ", it's a tie"
         socketio.emit('info', info, broadcast=False)
     elif dealer_hand_value < user_hand_value <= 21:
         win = user_data['bet'] * 2
-        payout(win)
+        payout(i, win)
         info = "You Won $" + str(win) + "! Keep it up!"
         socketio.emit('info', info, broadcast=False)
     elif dealer_hand_value > 21 >= user_hand_value:
         win = user_data['bet'] * 2
-        payout(win)
+        payout(i, win)
         info = "You Won $" + str(win) + "! Keep it up!"
         socketio.emit('info', info,  room=table_id)
     else:
-        payout(0)
+        payout(i, 0)
         info = "You lost $" + str(user_data['bet']) + ".... Sad"
         socketio.emit('info', info,  room=table_id)
-    clear_user_hand_and_bet(table_id)
+    clear_user_hand_and_bet(i, table_id)
 
 
-def payout(amt):
-    userId = auth.current_user['localId']
-    balance = get_user_data()['balance']
+def payout(i, amt):
+    userId = auth[int(i)].current_user['localId']
+    balance = get_user_data(i)['balance']
     balance += amt
     db.child("users").child(userId).child("bet").set(0)
     db.child("users").child(userId).child("balance").set(balance)
 
 
-def clear_user_hand_and_bet(table_id):
-    user_data = get_user_data()
+def clear_user_hand_and_bet(i, table_id):
+    user_data = get_user_data(i)
     seat_id = user_data['seatId']
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
@@ -496,19 +542,21 @@ def get_hand_total(hand):
 
 
 @socketio.on('deal_cards')
-def deal_cards(table_id):
+def deal_cards(data):
+    i = data['auth']
+    table_id = data['table_id']
     ready_players = get_ready_players(table_id)
     non_ready_players = get_non_ready_players(table_id)
-    seatId = get_user_data()['seatId']
+    seatId = get_user_data(i)['seatId']
     if len(ready_players) == 0:
         if non_ready_players[0] == seatId:
             print("No players Ready")
             dealer_begin_betting_round(table_id)
         return
-    if get_user_data()['bet'] > 0:
+    if get_user_data(i)['bet'] > 0:
         hand = first_hand()
         db.child("tables").child(table_id).child("seats").child(seatId).child("hand").set(hand)
-    if ready_players[0] == get_user_data()['seatId']:
+    if ready_players[0] == get_user_data(i)['seatId']:
         one_card = hit()
         db.child("tables").child(table_id).child("dealer").child("hand").set(one_card)
         db.child("tables").child(table_id).child("state").set(ready_players[0])
@@ -517,7 +565,7 @@ def deal_cards(table_id):
 
 # Any player with a bet greater than 0
 def get_ready_players(table_id):
-    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
+    seat_data = db.child("tables").child(table_id).child("seats").get().val()[1:]
     ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] > 0:
@@ -527,7 +575,7 @@ def get_ready_players(table_id):
 
 # Any player with a bet ==  0
 def get_non_ready_players(table_id):
-    seat_data = db.child("tables").child(table_id).child("seats").get(auth.current_user['idToken']).val()[1:]
+    seat_data = db.child("tables").child(table_id).child("seats").get().val()[1:]
     non_ready_players = []
     for i in range(len(seat_data)):
         if seat_data[i]['bet'] == 0:
@@ -538,14 +586,18 @@ def get_non_ready_players(table_id):
 
 
 @socketio.on('join')
-def on_join(table_id):
-    username = get_user_data()['userName']
+def on_join(data):
+    i = data['auth']
+    table_id = data['table_id']
+    username = get_user_data(i)['userName']
     join_room(table_id)
     print(username + ' has entered the room. ' + table_id)
 
 
 @socketio.on('leave')
-def on_leave(table_id):
+def on_leave(data):
+    i = data['auth']
+    table_id = data['table_id']
     username = get_user_data()['userName']
     leave_room(table_id)
     print(username + ' has left the room. ' + table_id)

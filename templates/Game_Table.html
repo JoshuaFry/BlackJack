@@ -13,13 +13,13 @@
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port, {transports: ['websocket']});
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port)//, {transports: ['websocket']});
 
-        socket.emit('join', '{{ table_id }}');
-
+        var _data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
+        socket.emit('join', _data);
         var nameId = 'name'+{{ seat_id }};
         document.getElementById(nameId).innerHTML = '{{ user_name }}';
-        socket.emit('get_seat_data', '{{ table_id }}');
+        socket.emit('get_seat_data', _data);
 
         {#jquery bindings#}
         $('#get_hand').click(function(){ get_hand(); return false;});
@@ -129,24 +129,23 @@
         {#END SOCKET FUNCTIONS#}
 
         function get_hand(){
-            socket.emit('get_hand', '{{ table_id }}');
+            var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
+            socket.emit('get_hand', data);
         }
         function hit() {
-            socket.emit('hit','{{ table_id }}');
-        }
-        function endBetting(){
-            socket.emit('end_betting', '{{ table_id }}');
+            var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
+            socket.emit('hit', data);
         }
         function placeBet(){
            var bet = document.getElementById('inputBet').value;
-           var data = {"bet": bet, "table_id": '{{ table_id }}'};
+           var data = {"bet": bet, "table_id": '{{ table_id }}', "auth":{{auth}}};
            socket.emit('place_bet', data);
             $('#bet{{ seat_id }}').html("Bet: $" + bet);
            disableBettingUI();
         }
         function stand(){
             disableTurnUI();
-            data = {"seat": {{seat_id}}, "table_id": '{{ table_id }}'};
+            data = {"seat": {{seat_id}}, "table_id": '{{ table_id }}', "auth":{{auth}}};
             socket.emit('pass_turn', data);
         }
 
@@ -201,10 +200,11 @@
         }
 
     function state_change(state){
+        var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         switch (state) {
             case -2:    //table empty -> begin betting
                 console.log('Pay out round!');
-                socket.emit('check_win', '{{ table_id }}');
+                socket.emit('check_win', data);
                 break;
             case -1:    //Betting round
                 socket.emit('verify_game_state', '{{ table_id }}');
@@ -225,6 +225,7 @@
     }
 
     function beginBettingTimer(end){
+        var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         var clearedDealersHand = false;
         var finishedRound = false;
         var x = setInterval(function () {
@@ -234,7 +235,7 @@
                 clearInterval(x);
                 finishedRound = true;
                 $('#timer').html('');
-                socket.emit('deal_cards', '{{ table_id }}');
+                socket.emit('deal_cards', data);
                 console.log("timer end");
                 disableBettingUI();
             }
@@ -287,7 +288,7 @@
 <body>
 
     <h1>UNDER CONSTRUCTION</h1>
-       <a href="{{ url_for('leave_table', table_id=table_id) }}">
+       <a href="{{ url_for('leave_table', i=auth, table_id=table_id) }}">
                 <button>LEAVE</button></a>
 
     <center>

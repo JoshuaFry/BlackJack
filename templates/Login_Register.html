@@ -9,7 +9,7 @@
 {% block content %}
     <div class="bs-example">
     <h1>Registration Form</h1>
-    <form class="form-horizontal" action="{{url_for('register_user')}}" method="post">
+    <form class="form-horizontal" action="{{url_for('register_user', i=auth)}}" method="post">
 		<div class="form-group">
             <label class="control-label col-xs-3" for="inputEmail">Email Address:</label>
             <div class="col-xs-9">

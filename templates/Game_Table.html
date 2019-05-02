@@ -80,26 +80,26 @@
                $(handId).append('<img src="/static/pictures/cards/'+k+'.png" width=40 alt='+ k + '/>');
                handTotal += handData[k];
            });
-           // if(handId === '#hand7') return; // Dealer logic happens on server side .py
+            // Dealer logic happens on server side .py
            if(handTotal > 21 && aces > 0){ //Switch ace value to 1 if over 21
                while(handTotal > 21){
                    handTotal -= 10;
                    aces --;
                    if(aces === 0 && handTotal > 21){
                        document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-                       stand();
-                       return;
+                       if(handId == '#hand'+{{ seat_id }})stand();
+                       break;
                    }
                }
                document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
            }
            else if(handTotal > 21){
                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-               stand();
+               if(handId == '#hand'+{{ seat_id }})stand();
                return;
            }else if(handTotal == 21){
                document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
-               stand();
+               if(handId == '#hand'+{{ seat_id }})stand();
                return;
            }else{
                document.getElementById(totalId).innerHTML ='Total: ' + handTotal;

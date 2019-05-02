@@ -520,7 +520,6 @@ def dealers_turn(table_id):
     while get_hand_total(hand) < 17:  # Make dealer hit until they are above 17
         card = hit()
         hand.update(card)
-        time.sleep(2)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
     dealer_begin_betting_round(table_id)

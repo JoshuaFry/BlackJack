@@ -412,13 +412,12 @@
     window.onbeforeunload = function(){
         var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         socket.emit('leave_table', data);
-        socket.emit('leave', data);
     };
 
     </script>
 <body>
     <h3>{{ table_name }}</h3>
-    <a href="{{ url_for('find_game', i=auth)}}">
+    <a href="{{ url_for('leave_table', i=auth, table_id=table_id)}}">
                 <button>LEAVE</button></a>
     <center>
         <h2 id="split_info"></h2>

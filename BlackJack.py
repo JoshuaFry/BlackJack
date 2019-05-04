@@ -232,6 +232,17 @@ def leave_table(data):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
+    on_leave(data)
+    return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
+
+
+@app.route('/leave_table/<i>/<table_id>')
+def leave_table(i, table_id):
+    seat_id = get_user_data(i)['seatId']
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set("empty")
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
     # close_data_stream("tables/" + table_id)
     return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
 
@@ -671,7 +682,6 @@ def on_join(data):
     print(username + ' has entered the room. ' + table_id)
 
 
-@socketio.on('leave')
 def on_leave(data):
     i = data['auth']
     table_id = data['table_id']
@@ -727,11 +737,11 @@ def create_all_tables():
                      "endBettingBy": -1,
                      "dealer": {"hand": "empty"},
                      "seats": {1: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
-                        2: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
-                        3: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
-                        4: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
-                        5: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0},
-                        6: {"hand": "empty", "name": "empty", "bet": 0, "balance": 0}, }}}
+                        2: {"hand": "empty", "sbet": 0, "split": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        3: {"hand": "empty", "sbet": 0, "split": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        4: {"hand": "empty", "sbet": 0, "split": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        5: {"hand": "empty", "sbet": 0, "split": "empty", "name": "empty", "bet": 0, "balance": 0},
+                        6: {"hand": "empty", "sbet": 0, "split": "empty", "name": "empty", "bet": 0, "balance": 0}, }}}
         db.child("tables").update(data)
 
 

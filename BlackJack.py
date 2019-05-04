@@ -190,13 +190,16 @@ def get_tables():
 @login_required
 def join_table(i, table_id):
     seat_id = get_available_seatid(table_id)
+    table_name = db.child("tables").child(table_id).child("name").get().val()
     print(seat_id)
     if seat_id == -1:
         return render_template("Game_Search.html", table_data=get_tables(), user=is_user(i), auth=i)
 
     write_user_to_seat(i, table_id, seat_id)
     # begin_data_stream("tables/" + table_id)  #TODO: Refresh Stream When First User Joins a table
-    return render_template("Game_Table.html", table_id=table_id, seat_id=seat_id, user_name=get_user_data(i)['userName'], user=is_user(i), auth=i)
+    return render_template("Game_Table.html",
+                           table_id=table_id, seat_id=seat_id, user_name=get_user_data(i)['userName'],
+                           table_name=table_name, user=is_user(i), auth=i)
 
 
 def write_user_to_seat(i, table_id, seat_id):
@@ -486,24 +489,24 @@ def check_split_win(user_hand_value, data):
     if user_hand_value == 21:
         win = user_data['sbet'] * 3
         payout(i, win)
-        return "Split: Black Jack Win $" + str(win) + "! Killer!"
+        return "Top Hand: Black Jack Win $" + str(win) + "! Killer!"
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
         push = user_data['sbet']
         payout(i, push)
-        return "Split: Push $" + str(push) + ", it's a tie"
+        return "Top Hand: Push $" + str(push) + ", it's a tie"
     elif dealer_hand_value < user_hand_value <= 21:
         win = user_data['sbet'] * 2
         payout(i, win)
-        return "Split: You Won $" + str(win) + "! Keep it up!"
+        return "Top Hand: You Won $" + str(win) + "! Keep it up!"
     elif dealer_hand_value > 21 >= user_hand_value:
         win = user_data['sbet'] * 2
         payout(i, win)
-        return "Split: You Won $" + str(win) + "! Keep it up!"
+        return "Top Hand: You Won $" + str(win) + "! Keep it up!"
     else:
         payout(i, 0)
-        return "Split: You lost $" + str(user_data['sbet']) + ".... Sad"
+        return "Top Hand: You lost $" + str(user_data['sbet']) + ".... Sad"
 
 
 @socketio.on('check_win')
@@ -512,12 +515,14 @@ def check_win(data):
     table_id = data['table_id']
     user_data = get_user_data(i)
     hand = get_current_hand(user_data['seatId'], table_id)
+    isSplit = False
     if has_split_hand(user_data['seatId'], table_id):
         split_hand = get_split_hand(user_data['seatId'], table_id)
         split_value = get_hand_total(split_hand)
         split_win_info = check_split_win(split_value, data)
         emit('split_info', split_win_info)
         clear_user_hand_and_bet_split(i, table_id)
+        isSplit = True
     user_hand_value = get_hand_total(hand)
     if user_hand_value is None:
         return
@@ -525,7 +530,7 @@ def check_win(data):
         win = user_data['bet'] * 3
         payout(i, win)
         info = "Black Jack Win $" + str(win) + "! Killer!"
-        emit('info', info)  # ,  room=table_id, broadcast=False)
+        emit('info', info)
     dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
     dealer_hand_value = get_hand_total(dealers_hand)
     if user_hand_value == dealer_hand_value:
@@ -705,10 +710,13 @@ def has_split_hand(seat_id, table_id):
 
 
 def create_all_tables():
+    names = ["Flamingo", "Caesar's Palace", "Back Alley Gamble",
+             "Sketchy Basement In China Town", "Mafia Game Night", "Worst Pod in the Pin"]
+
     for i in range(6):
         id = str(uuid.uuid4())
         data = {id: {"id": id,
-                     "name": "blank",
+                     "name": names[i],
                      "state": -2,
                      "endBettingBy": -1,
                      "dealer": {"hand": "empty"},

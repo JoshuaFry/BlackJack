@@ -162,8 +162,10 @@
         });
 
         socket.on('bet_update', function(data){
+            clearSBetTotal();
            var betId = '#bet'+data['seat'];
            $(betId).html('Bet: $'+ data['bet']);
+
         });
 
         socket.on('sbet_update', function (data) {
@@ -304,6 +306,7 @@
         var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         var clearedDealersHand = false;
         var finishedRound = false;
+        clearTurnUIs();
 
         var x = setInterval(function () {
             var now = new Date().getTime();
@@ -331,6 +334,10 @@
         }, 1000);
     }
 
+    function clearTurnUIs(){
+        $('#sturn_UI').hide();
+        $('#turn_UI').hide();
+    }
 
     function clearCards(){
         for(var i = 1; i < 8; i++){
@@ -338,15 +345,24 @@
             var totalId = '#total' + i;
             var split_totalId = '#stotal'+i;
             var sbetId = '#sbet'+i;
-            var toatlId = '#totat'+i;
+            var splitId = '#split'+i;
             $(handId).html('');
             $(totalId).html('');
             $(split_totalId).html('');
             $(sbetId).html('');
-            $(toatlId).html('');
+            $(sbetId).html('');
         }
         $('#info').html('');
         $('#split_info').html('');
+    }
+
+    function clearSBetTotal(){
+            var totalId = '#total'+{{ seat_id }};
+            var split_totalId = '#stotal'+{{ seat_id }};
+            var sbetId = '#sbet'+{{ seat_id }};
+            $(totalId).html('');
+            $(split_totalId).html('');
+            $(sbetId).html('');
     }
 
     function enableBettingUI(){
@@ -385,8 +401,6 @@
         $('#sturn_UI').show();
     }
     function disableSplitUI(){
-        {#var splitId = '#split'+{{ seat_id }};#}
-        {#$(splitId).hide();#}
         $('#sturn_UI').hide();
         $('#turn_UI').show();
         $('#split').hide();

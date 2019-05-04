@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+# from gevent import monkey
+# monkey.patch_all()
 import pyrebase
 from flask import Flask, request, render_template
 import uuid, functools, os, random
@@ -583,7 +583,6 @@ def dealers_turn(table_id):
         hand.update(card)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
-    time.sleep(4)
     dealer_begin_betting_round(table_id)
 
 

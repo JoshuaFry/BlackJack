@@ -34,18 +34,9 @@ body{
     margin-right: 20px;
     border: #1f1f1f 1px;
 }
-.img0{
-
+.greybd{
+    background-color : white
 }
-.img1{
-
-}
-.img2{
-
-}
-.img3{
-
-}
-.img4{
-
+.lightGreen{
+    background-color : palegreen;
 }

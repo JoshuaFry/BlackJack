@@ -1,5 +1,5 @@
-from gevent import monkey
-monkey.patch_all()
+# from gevent import monkey
+# monkey.patch_all()
 import pyrebase
 from flask import Flask, request, render_template
 import uuid, functools, os, random
@@ -303,8 +303,13 @@ def stream_put(message):
             elif path[2] == 'hand':
                 data = {'seat': path[1], 'hand': message['data']}
                 socketio.emit('hand_update', data, room=table_id, broadcast=True, json=True)
+            elif path[2] == 'split':
+                data = {'seat': path[1], 'hand': message['data']}
+                socketio.emit('split_hand_update', data, room=table_id, broadcast=True, json=True)
+            elif path[2] == 'sbet':
+                data = {'seat': path[1], 'bet': message['data']}
+                socketio.emit('sbet_update', data, room=table_id, broadcast=True, json=True)
         if path[0] == 'state':
-
             socketio.emit('state_changed', message['data'], room=table_id)
         if path[0] == 'dealer':
             data = {'seat': 7, 'hand': message['data']}
@@ -352,6 +357,8 @@ def first_hand():
 def get_current_hand(seat_id, table_id):
     return db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").get().val()
 
+def get_split_hand(seat_id, table_id):
+    return db.child("tables").child(table_id).child("seats").child(seat_id).child("split").get().val()
 
 def hit():
     deck = get_deck()
@@ -370,6 +377,19 @@ def write_hand_to_database(data):
     card = hit()
     hand.update(card)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
+
+
+@socketio.on('split_hit')
+def split_hit(data):
+    i = data['auth']
+    table_id = data['table_id']
+    seat_id = get_user_data(i)['seatId']
+    hand = get_split_hand(seat_id, table_id)
+    if len(hand) == 0:
+        return
+    card = hit()
+    hand.update(card)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("split").set(hand)
 
 
 @socketio.on('get_hand')
@@ -436,6 +456,7 @@ def pass_turn(data):
     ready_players = get_ready_players(data['table_id'])
     next_turn = get_next_turn(ready_players, current)
     if next_turn == 7:
+        time.sleep(2)
         print("Dealer's Turn")
         dealers_turn(data['table_id'])
     elif next_turn == 0:
@@ -456,12 +477,47 @@ def get_next_turn(ready_players, current):
     return next_turn
 
 
+def check_split_win(user_hand_value, data):
+    i = data['auth']
+    table_id = data['table_id']
+    user_data = get_user_data(i)
+    if user_hand_value is None:
+        return
+    if user_hand_value == 21:
+        win = user_data['sbet'] * 3
+        payout(i, win)
+        return "Split: Black Jack Win $" + str(win) + "! Killer!"
+    dealers_hand = dict(db.child("tables").child(table_id).child("dealer").child("hand").get().val())
+    dealer_hand_value = get_hand_total(dealers_hand)
+    if user_hand_value == dealer_hand_value:
+        push = user_data['sbet']
+        payout(i, push)
+        return "Split: Push $" + str(push) + ", it's a tie"
+    elif dealer_hand_value < user_hand_value <= 21:
+        win = user_data['sbet'] * 2
+        payout(i, win)
+        return "Split: You Won $" + str(win) + "! Keep it up!"
+    elif dealer_hand_value > 21 >= user_hand_value:
+        win = user_data['sbet'] * 2
+        payout(i, win)
+        return "Split: You Won $" + str(win) + "! Keep it up!"
+    else:
+        payout(i, 0)
+        return "Split: You lost $" + str(user_data['sbet']) + ".... Sad"
+
+
 @socketio.on('check_win')
 def check_win(data):
     i = data['auth']
     table_id = data['table_id']
     user_data = get_user_data(i)
     hand = get_current_hand(user_data['seatId'], table_id)
+    if has_split_hand(user_data['seatId'], table_id):
+        split_hand = get_split_hand(user_data['seatId'], table_id)
+        split_value = get_hand_total(split_hand)
+        split_win_info = check_split_win(split_value, data)
+        emit('split_info', split_win_info)
+        clear_user_hand_and_bet_split(i, table_id)
     user_hand_value = get_hand_total(hand)
     if user_hand_value is None:
         return
@@ -508,6 +564,13 @@ def clear_user_hand_and_bet(i, table_id):
     db.child("tables").child(table_id).child("seats").child(seat_id).child("bet").set(0)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set("empty")
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(user_data['balance'])
+
+
+def clear_user_hand_and_bet_split(i, table_id):
+    user_data = get_user_data(i)
+    seat_id = user_data['seatId']
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("sbet").set(0)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("split").set("empty")
 
 
 def dealers_turn(table_id):
@@ -606,8 +669,43 @@ def on_leave(data):
     print(username + ' has left the room. ' + table_id)
 
 
+@socketio.on('split_hand')
+def split_hand(data):
+    i = data['auth']
+    table_id = data['table_id']
+    user_data = get_user_data(i)
+    userId = auth[int(i)].current_user['localId']
+    seat_id = user_data['seatId']
+    bet = user_data['bet']
+    balance = user_data['balance'] - bet
+    hand1 = get_current_hand(seat_id, table_id)
+    new_hand1 = {}
+    new_hand2 = {}
+    key, val = hand1.popitem()
+    new_hand1.update({key: val})
+    key, val = hand1.popitem()
+    new_hand2.update({key: val})
+    new_hand1.update(hit())
+    new_hand2.update(hit())
+    db.child("users").child(userId).child("sbet").set(bet)
+    db.child("users").child(userId).child("balance").set(balance)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("sbet").set(bet)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(new_hand1)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("split").set(new_hand2)
+    db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(balance)
+    emit('enable_split')
+
+
+def has_split_hand(seat_id, table_id):
+    hand = db.child("tables").child(table_id).child("seats").child(seat_id).child("split").get().val()
+    if isinstance(hand, str):
+        return False
+    else:
+        return True
+
+
 def create_all_tables():
-    for i in range(3):
+    for i in range(6):
         id = str(uuid.uuid4())
         data = {id: {"id": id,
                      "name": "blank",

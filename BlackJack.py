@@ -220,9 +220,10 @@ def get_available_seatid(table_id):
     return -1
 
 
-@app.route('/leave_table/<table_id>/<i>', methods=['GET', 'POST'])
-@login_required
-def leave_table(i, table_id):
+@socketio.on('leave_table')
+def leave_table(data):
+    i = data['auth']
+    table_id = data['table_id']
     seat_id = get_user_data(i)['seatId']
     db.child("tables").child(table_id).child("seats").child(seat_id).child("name").set("empty")
     db.child("tables").child(table_id).child("seats").child(seat_id).child("balance").set(0)
@@ -456,7 +457,6 @@ def pass_turn(data):
     ready_players = get_ready_players(data['table_id'])
     next_turn = get_next_turn(ready_players, current)
     if next_turn == 7:
-        time.sleep(2)
         print("Dealer's Turn")
         dealers_turn(data['table_id'])
     elif next_turn == 0:
@@ -583,6 +583,7 @@ def dealers_turn(table_id):
         hand.update(card)
     db.child("tables").child(table_id).child("dealer").child("hand").set(hand)
     db.child("tables").child(table_id).child("state").set(-2)  # payout round
+    time.sleep(4)
     dealer_begin_betting_round(table_id)
 
 

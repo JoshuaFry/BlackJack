@@ -10,10 +10,11 @@
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
 
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port); //, {transports: ['websocket']});
+
     $(document).ready(function(){
         var THIRTY_SECONDS = (1000 * 30);
         var FORTY_FIVE_SECONDS = (1000 * 45);
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port); //, {transports: ['websocket']});
 
         var _data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
         socket.emit('join', _data);
@@ -192,6 +193,7 @@
             socket.emit('get_hand', data);
         }
         function hit() {
+            $('#split').hide();
             var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
             socket.emit('hit', data);
         }
@@ -348,10 +350,16 @@
     }
 
     function enableBettingUI(){
+        var playerDiv = '#'+{{ seat_id }};
+        $(playerDiv).removeClass("greybd");
+        $(playerDiv).addClass("lightGreen");
         $('#betting_UI').show();
     }
 
     function disableBettingUI(){
+        var playerDiv = '#'+{{ seat_id }};
+        $(playerDiv).removeClass("lightGreen");
+        $(playerDiv).addClass("greybd");
         $('#betting_UI').hide();
     }
 
@@ -360,6 +368,7 @@
         $(playerDiv).removeClass("greybd");
         $(playerDiv).addClass("lightGreen");
         $('#turn_UI').show();
+        $('#split').show();
     }
 
     function disableTurnUI() {
@@ -380,25 +389,25 @@
         {#$(splitId).hide();#}
         $('#sturn_UI').hide();
         $('#turn_UI').show();
+        $('#split').hide();
     }
 
   });
 
     window.onbeforeunload = function(){
-        return 'Are you sure you want to leave?';
+        var data = {"table_id":'{{ table_id }}', "auth":{{auth}}};
+        socket.emit('leave_table', data);
+        socket.emit('leave', data);
     };
 
     </script>
 <body>
 
-    <h1>UNDER CONSTRUCTION</h1>
-       <a href="{{ url_for('leave_table', i=auth, table_id=table_id) }}">
+    <a href="{{ url_for('find_game', i=auth)}}">
                 <button>LEAVE</button></a>
-
     <center>
-    <br>
-    <h3 id="info"></h3>
-        <h3 id="split_info"></h3>
+    <h2 id="info"></h2>
+        <h2 id="split_info"></h2>
     <br>
 
     <h3 id="timer"></h3>
@@ -417,7 +426,6 @@
                 <h4 id='name{{ i }}'></h4>
                 <h4 id='balance{{ i }}'>$</h4>
 
-                <br>
                 {% if (i == seat_id) %}
                 <div id="sturn_UI">
                     <a id="_hit">Hit</a> | <a id="_stand" >Stand</a>
@@ -447,8 +455,6 @@
             </div>
         {% endfor %}
     </div>
-
-    <br>
 
 {% endblock content %}
 </body>

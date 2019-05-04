@@ -95,7 +95,7 @@
                    aces --;
                    if(aces === 0 && handTotal > 21){
                        document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-                       if(handId == '#hand'+{{ seat_id }})stand();
+                       if(handId == '#hand'+{{ seat_id }});
                        break;
                    }
                }
@@ -103,11 +103,11 @@
            }
            else if(handTotal > 21){
                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-               if(handId == '#hand'+{{ seat_id }})stand();
+               if(handId == '#hand'+{{ seat_id }});
                return;
            }else if(handTotal == 21){
                document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
-               if(handId == '#hand'+{{ seat_id }})stand();
+               if(handId == '#hand'+{{ seat_id }});
                return;
            }else{
                document.getElementById(totalId).innerHTML ='Total: ' + handTotal;
@@ -136,7 +136,7 @@
                    aces --;
                    if(aces === 0 && handTotal > 21){
                        document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-                       if(handId == '#split'+{{ seat_id }})_stand();
+                       if(handId == '#split'+{{ seat_id }});
                        break;
                    }
                }
@@ -144,11 +144,11 @@
            }
            else if(handTotal > 21){
                document.getElementById(totalId).innerHTML = 'BUST! ' + handTotal;
-               if(handId == '#split'+{{ seat_id }})_stand();
+               if(handId == '#split'+{{ seat_id }});
                return;
            }else if(handTotal == 21){
                document.getElementById(totalId).innerHTML = 'BLACK JACK! ' + handTotal;
-               if(handId == '#split'+{{ seat_id }})_stand();
+               if(handId == '#split'+{{ seat_id }});
                return;
            }else{
                document.getElementById(totalId).innerHTML ='Total: ' + handTotal;

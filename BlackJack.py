@@ -378,6 +378,9 @@ def write_hand_to_database(data):
     hand = get_current_hand(seat_id, table_id)
     if len(hand) == 0:
         return
+    if get_hand_total(hand) >= 21:
+        emit('info', "You can not Hit")
+        return
     card = hit()
     hand.update(card)
     db.child("tables").child(table_id).child("seats").child(seat_id).child("hand").set(hand)
@@ -390,6 +393,9 @@ def split_hit(data):
     seat_id = get_user_data(i)['seatId']
     hand = get_split_hand(seat_id, table_id)
     if len(hand) == 0:
+        return
+    if get_hand_total(hand) >= 21:
+        emit('split_info', "You can not Hit")
         return
     card = hit()
     hand.update(card)
